@@ -258,6 +258,14 @@ class OFFM3EDDatasetSeqs(DatasetTemplate):
             if self.dataset_cfg.get('SHIFT_COOR', None):
                 pred_boxes[:, 0:3] -= self.dataset_cfg.SHIFT_COOR
 
+            # BOX FILTER
+            if self.dataset_cfg.get('TEST', None) and self.dataset_cfg.TEST.BOX_FILTER['FOV_FILTER']:
+                box_preds_lidar_center = pred_boxes[:, 0:3]
+                fov_flag = getattr(self, f'seq_{0}').get_fov_flag(box_preds_lidar_center)
+                pred_boxes = pred_boxes[fov_flag]
+                pred_labels = pred_labels[fov_flag]
+                pred_scores = pred_scores[fov_flag]
+
             pred_dict['name'] = np.array(class_names)[pred_labels - 1]
             pred_dict['score'] = pred_scores
             pred_dict['boxes_lidar'] = pred_boxes
