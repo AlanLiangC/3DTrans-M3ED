@@ -93,8 +93,11 @@ def train_model_st(model, optimizer, source_loader, target_loader, model_func, l
                    source_sampler=None, target_sampler=None, lr_warmup_scheduler=None, ckpt_save_interval=1,
                    max_ckpt_save_num=50, merge_all_iters_to_one_epoch=False, logger=None, ema_model=None):
     accumulated_iter = start_iter
-    source_reader = common_utils.DataReader(source_loader, source_sampler)
-    source_reader.construct_iter()
+    if source_loader is not None:
+        source_reader = common_utils.DataReader(source_loader, source_sampler)
+        source_reader.construct_iter()
+    else:
+        source_reader = None
 
     # for continue training.
     # if already exist generated pseudo label result
@@ -125,7 +128,8 @@ def train_model_st(model, optimizer, source_loader, target_loader, model_func, l
         for cur_epoch in tbar:
             if target_sampler is not None:
                 target_sampler.set_epoch(cur_epoch)
-                source_reader.set_cur_epoch(cur_epoch)
+                if source_reader is not None:
+                    source_reader.set_cur_epoch(cur_epoch)
 
             # train one epoch
             if lr_warmup_scheduler is not None and cur_epoch < optim_cfg.WARMUP_EPOCH:
