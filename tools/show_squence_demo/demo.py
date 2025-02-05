@@ -12,7 +12,7 @@ import torch
 from utils import Visualizer, LabelLUT
 
 from utils.base_dataset import DataCollect
-from pcdet.ops.roiaware_pool3d.roiaware_pool3d_utils import points_in_boxes_gpu
+from m3ed_pcdet.ops.roiaware_pool3d.roiaware_pool3d_utils import points_in_boxes_gpu
 
 
 

@@ -11,10 +11,10 @@ import torch.distributed as dist
 import torch.nn as nn
 from tensorboardX import SummaryWriter
 
-from pcdet.config import cfg, cfg_from_list, cfg_from_yaml_file, log_config_to_file
-from pcdet.datasets import build_semi_dataloader
-from pcdet.models import build_network, model_fn_decorator
-from pcdet.utils import common_utils
+from m3ed_pcdet.config import cfg, cfg_from_list, cfg_from_yaml_file, log_config_to_file
+from m3ed_pcdet.datasets import build_semi_dataloader
+from m3ed_pcdet.models import build_network, model_fn_decorator
+from m3ed_pcdet.utils import common_utils
 from train_utils.optimization import build_optimizer, build_scheduler
 from train_utils.train_semi_utils import train_model
 from ssl_utils.semi_train_utils import train_ssl_model

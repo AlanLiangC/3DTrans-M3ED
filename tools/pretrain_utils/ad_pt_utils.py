@@ -5,7 +5,7 @@ import torch
 import tqdm
 import time
 from torch.nn.utils import clip_grad_norm_
-from pcdet.utils import common_utils, commu_utils
+from m3ed_pcdet.utils import common_utils, commu_utils
 
 
 def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, accumulated_iter, optim_cfg,
@@ -153,8 +153,8 @@ def checkpoint_state(model=None, optimizer=None, epoch=None, it=None):
         model_state = None
 
     try:
-        import pcdet
-        version = 'pcdet+' + pcdet.__version__
+        import m3ed_pcdet
+        version = 'pcdet+' + m3ed_pcdet.__version__
     except:
         version = 'none'
 

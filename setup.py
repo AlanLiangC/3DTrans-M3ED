@@ -29,10 +29,10 @@ def write_version_to_file(version, target_file):
 
 if __name__ == '__main__':
     version = '0.5.2+%s' % get_git_commit_number()
-    write_version_to_file(version, 'pcdet/version.py')
+    write_version_to_file(version, 'm3ed_pcdet/version.py')
 
     setup(
-        name='pcdet',
+        name='m3ed_pcdet',
         version=version,
         description='3DTrans Autonomous Driving Transfer Learning Codebase',
         install_requires=[
@@ -58,7 +58,7 @@ if __name__ == '__main__':
         ext_modules=[
             make_cuda_ext(
                 name='iou3d_nms_cuda',
-                module='pcdet.ops.iou3d_nms',
+                module='m3ed_pcdet.ops.iou3d_nms',
                 sources=[
                     'src/iou3d_cpu.cpp',
                     'src/iou3d_nms_api.cpp',
@@ -68,7 +68,7 @@ if __name__ == '__main__':
             ),
             make_cuda_ext(
                 name='roiaware_pool3d_cuda',
-                module='pcdet.ops.roiaware_pool3d',
+                module='m3ed_pcdet.ops.roiaware_pool3d',
                 sources=[
                     'src/roiaware_pool3d.cpp',
                     'src/roiaware_pool3d_kernel.cu',
@@ -76,7 +76,7 @@ if __name__ == '__main__':
             ),
             make_cuda_ext(
                 name='roipoint_pool3d_cuda',
-                module='pcdet.ops.roipoint_pool3d',
+                module='m3ed_pcdet.ops.roipoint_pool3d',
                 sources=[
                     'src/roipoint_pool3d.cpp',
                     'src/roipoint_pool3d_kernel.cu',
@@ -84,7 +84,7 @@ if __name__ == '__main__':
             ),
             make_cuda_ext(
                 name='pointnet2_stack_cuda',
-                module='pcdet.ops.pointnet2.pointnet2_stack',
+                module='m3ed_pcdet.ops.pointnet2.pointnet2_stack',
                 sources=[
                     'src/pointnet2_api.cpp',
                     'src/ball_query.cpp',
@@ -103,7 +103,7 @@ if __name__ == '__main__':
             ),
             make_cuda_ext(
                 name='pointnet2_batch_cuda',
-                module='pcdet.ops.pointnet2.pointnet2_batch',
+                module='m3ed_pcdet.ops.pointnet2.pointnet2_batch',
                 sources=[
                     'src/pointnet2_api.cpp',
                     'src/ball_query.cpp',

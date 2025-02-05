@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 from .semi_utils import reverse_transform, load_data_to_gpu, filter_boxes
-from pcdet.ops.iou3d_nms.iou3d_nms_utils import boxes_iou3d_gpu
+from m3ed_pcdet.ops.iou3d_nms.iou3d_nms_utils import boxes_iou3d_gpu
 
 def get_iou_consistency_loss(teacher_boxes, student_boxes):
     box_losses, cls_losses = [], []

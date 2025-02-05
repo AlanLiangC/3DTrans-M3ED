@@ -1,6 +1,6 @@
 import torch
 from .semi_utils import reverse_transform, load_data_to_gpu, construct_pseudo_label
-from pcdet.models.model_utils.model_nms_utils import class_agnostic_nms
+from m3ed_pcdet.models.model_utils.model_nms_utils import class_agnostic_nms
 
 @torch.no_grad()
 def iou_match_3d_filter(batch_dict, cfgs):

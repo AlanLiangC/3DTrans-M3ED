@@ -5,8 +5,8 @@ import torch
 import tqdm
 import time
 from torch.nn.utils import clip_grad_norm_
-from pcdet.utils import common_utils, commu_utils
-from pcdet.utils import self_training_utils
+from m3ed_pcdet.utils import common_utils, commu_utils
+from m3ed_pcdet.utils import self_training_utils
 
 
 def train_detector(model, model_func, optimizer, lr_scheduler, labeled_loader, unlabeled_loader, labeled_loader_iter,
@@ -189,8 +189,8 @@ def checkpoint_state(model=None, optimizer=None, epoch=None, it=None):
         model_state = None
 
     try:
-        import pcdet
-        version = 'pcdet+' + pcdet.__version__
+        import m3ed_pcdet
+        version = 'pcdet+' + m3ed_pcdet.__version__
     except:
         version = 'none'
 

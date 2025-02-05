@@ -14,10 +14,10 @@ except:
 import numpy as np
 import torch
 
-from pcdet.config import cfg, cfg_from_yaml_file
-from pcdet.datasets import DatasetTemplate
-from pcdet.models import build_network, load_data_to_gpu
-from pcdet.utils import common_utils
+from m3ed_pcdet.config import cfg, cfg_from_yaml_file
+from m3ed_pcdet.datasets import DatasetTemplate
+from m3ed_pcdet.models import build_network, load_data_to_gpu
+from m3ed_pcdet.utils import common_utils
 
 
 class DemoDataset(DatasetTemplate):

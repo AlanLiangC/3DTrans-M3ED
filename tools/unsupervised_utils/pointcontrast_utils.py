@@ -1,13 +1,13 @@
 import os
 import glob
 # from plotly import data
-from pcdet.models import load_data_to_gpu
+from m3ed_pcdet.models import load_data_to_gpu
 import torch
 import tqdm
-from pcdet.models import load_data_to_gpu
+from m3ed_pcdet.models import load_data_to_gpu
 from torch.nn.utils import clip_grad_norm_
 from ssl_utils.semi_utils import random_world_flip, random_world_rotation, random_world_scaling
-from pcdet.models.detectors.unsupervised_model.pvrcnn_plus_backbone import HardestContrastiveLoss
+from m3ed_pcdet.models.detectors.unsupervised_model.pvrcnn_plus_backbone import HardestContrastiveLoss
 
 # @torch.no_grad()
 # def get_positive_pairs(batch_dict_1, batch_dict_2):
@@ -163,8 +163,8 @@ def checkpoint_state(model=None, optimizer=None, epoch=None, it=None):
         model_state = None
 
     try:
-        import pcdet
-        version = 'pcdet+' + pcdet.__version__
+        import m3ed_pcdet
+        version = 'pcdet+' + m3ed_pcdet.__version__
     except:
         version = 'none'
 

@@ -3,9 +3,9 @@ import os
 import glob
 import tqdm
 from torch.nn.utils import clip_grad_norm_
-from pcdet.utils import common_utils
-from pcdet.utils import self_training_utils
-from pcdet.config import cfg
+from m3ed_pcdet.utils import common_utils
+from m3ed_pcdet.utils import self_training_utils
+from m3ed_pcdet.config import cfg
 from .train_utils import save_checkpoint, checkpoint_state
 
 

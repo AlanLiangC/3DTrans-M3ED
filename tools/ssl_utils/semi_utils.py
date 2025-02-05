@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from pcdet.models.model_utils import model_nms_utils
+from m3ed_pcdet.models.model_utils import model_nms_utils
 
 try:
     import kornia

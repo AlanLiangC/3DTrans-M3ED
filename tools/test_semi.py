@@ -13,10 +13,10 @@ import torch
 from tensorboardX import SummaryWriter
 
 from eval_utils import eval_utils
-from pcdet.config import cfg, cfg_from_list, cfg_from_yaml_file, log_config_to_file
-from pcdet.datasets import build_semi_dataloader
-from pcdet.models import build_network
-from pcdet.utils import common_utils
+from m3ed_pcdet.config import cfg, cfg_from_list, cfg_from_yaml_file, log_config_to_file
+from m3ed_pcdet.datasets import build_semi_dataloader
+from m3ed_pcdet.models import build_network
+from m3ed_pcdet.utils import common_utils
 
 
 def parse_config():
