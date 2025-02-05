@@ -32,3 +32,4 @@ tools/train_random_source_target.py
 */logs/*
 model_zoo
 tools/ALTest
+vis_tools
