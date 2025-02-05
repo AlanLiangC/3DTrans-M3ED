@@ -212,7 +212,7 @@ MODEL:
 
 
 OPTIMIZATION:
-    NUM_EPOCHS: 30
+    NUM_EPOCHS: 5
     BATCH_SIZE_PER_GPU: 4
     OPTIMIZER: adam_onecycle
     LR: 0.0015
@@ -241,7 +241,7 @@ SELF_TRAIN:
         USE_DATA: True
         LOSS_WEIGHT: 1.0
 
-    SCORE_THRESH: [0.5]
+    SCORE_THRESH: [0.4]
     NEG_THRESH: [0.2]
     UPDATE_PSEUDO_LABEL: [0] # [0]
     UPDATE_PSEUDO_LABEL_INTERVAL: 5  # 4
@@ -249,7 +249,7 @@ SELF_TRAIN:
 
     PROG_AUG:
         ENABLED: True
-        UPDATE_AUG: [1, 5, 10, 15] # [5, 10, 20, 25]
+        UPDATE_AUG: [5, 10, 15] # [5, 10, 20, 25]
         SCALE: 1.1
         D_CFG:
             DISABLE_AUG_LIST: [ 'placeholder' ]

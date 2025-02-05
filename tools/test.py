@@ -39,6 +39,7 @@ def parse_config():
     parser.add_argument('--eval_all', action='store_true', default=False, help='whether to evaluate all checkpoints')
     parser.add_argument('--ckpt_dir', type=str, default=None, help='specify a ckpt directory to be evaluated if needed')
     parser.add_argument('--save_to_file', action='store_true', default=False, help='')
+    parser.add_argument('--eval_fov_only', action='store_true', default=False, help='')
 
     args = parser.parse_args()
 
@@ -185,6 +186,10 @@ def main():
     ckpt_dir = args.ckpt_dir if args.ckpt_dir is not None else output_dir / 'ckpt'
 
     if cfg.get('DATA_CONFIG_TAR', None):
+
+        if args.eval_fov_only:
+            cfg.DATA_CONFIG_TAR.FOV_POINTS_ONLY = True
+            
         test_set, test_loader, sampler = build_dataloader(
             dataset_cfg=cfg.DATA_CONFIG_TAR,
             class_names=cfg.DATA_CONFIG_TAR.CLASS_NAMES,
