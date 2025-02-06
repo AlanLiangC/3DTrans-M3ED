@@ -150,13 +150,13 @@ def train_model_st(model, optimizer, source_loader, target_loader, model_func, l
             #     target_loader.dataset.train()
             
             # curriculum data augmentation
-            if cfg.SELF_TRAIN.get('PROG_AUG', None) and cfg.SELF_TRAIN.PROG_AUG.ENABLED and \
-                (cur_epoch in cfg.SELF_TRAIN.PROG_AUG.UPDATE_AUG):
-                aug_times = cfg.SELF_TRAIN.PROG_AUG.UPDATE_AUG.index(cur_epoch) + 1
-                print ("***********update AUG times:**********", aug_times)
-                target_loader.dataset.data_augmentor.re_prepare(
-                    augmentor_configs=cfg.SELF_TRAIN.PROG_AUG.D_CFG if cfg.SELF_TRAIN.PROG_AUG.get('D_CFG', None) else None, 
-                    intensity=cfg.SELF_TRAIN.PROG_AUG.SCALE, aug_times=aug_times)
+            # if cfg.SELF_TRAIN.get('PROG_AUG', None) and cfg.SELF_TRAIN.PROG_AUG.ENABLED and \
+            #     (cur_epoch in cfg.SELF_TRAIN.PROG_AUG.UPDATE_AUG):
+            #     aug_times = cfg.SELF_TRAIN.PROG_AUG.UPDATE_AUG.index(cur_epoch) + 1
+            #     print ("***********update AUG times:**********", aug_times)
+            #     target_loader.dataset.data_augmentor.re_prepare(
+            #         augmentor_configs=cfg.SELF_TRAIN.PROG_AUG.D_CFG if cfg.SELF_TRAIN.PROG_AUG.get('D_CFG', None) else None, 
+            #         intensity=cfg.SELF_TRAIN.PROG_AUG.SCALE, aug_times=aug_times)
 
             accumulated_iter = train_one_epoch_st(
                 model, optimizer, source_reader, target_loader, model_func,

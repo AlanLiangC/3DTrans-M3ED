@@ -18,7 +18,7 @@ DATA_CONFIG_TAR:
     SHIFT_COOR: [0.0, 0.0, 0.0]
 
     DATA_AUGMENTOR:
-        DISABLE_AUG_LIST: [ 'placeholder' ] # Although the target domain uses the random_object_scaling data augmentation, the method is only used for PSEUDO-LABELED DATA
+        DISABLE_AUG_LIST: [ 'placeholder', 'random_object_rotation'] # Although the target domain uses the random_object_scaling data augmentation, the method is only used for PSEUDO-LABELED DATA
         AUG_CONFIG_LIST:
             - NAME: random_object_rotation
               ROT_PROB: 0.8
