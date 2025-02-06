@@ -12,22 +12,26 @@ DATA_CONFIG:
 DATA_CONFIG_TAR:
     _BASE_CONFIG_: cfgs/dataset_configs/m3ed/da_m3ed_dataset.yaml
     TARGET: True
-    FOV_POINTS_ONLY: True
+    FOV_POINTS_ONLY: False
     USE_PSEUDO_LABEL: True
     CLASS_NAMES: ['Vehicle']
     SHIFT_COOR: [0.0, 0.0, 0.0]
 
     DATA_AUGMENTOR:
-        DISABLE_AUG_LIST: ['placeholder']
+        DISABLE_AUG_LIST: [ 'placeholder' ] # Although the target domain uses the random_object_scaling data augmentation, the method is only used for PSEUDO-LABELED DATA
         AUG_CONFIG_LIST:
+            - NAME: random_object_rotation
+              ROT_PROB: 0.8
+              ROT_UNIFORM_NOISE: [ -0.38539816, 0.38539816 ]
+
             - NAME: random_world_flip
-              ALONG_AXIS_LIST: ['x']
+              ALONG_AXIS_LIST: [ 'x', 'y' ]
 
             - NAME: random_world_rotation
-              WORLD_ROT_ANGLE: [-0.78539816, 0.78539816]
+              WORLD_ROT_ANGLE: [ -0.78539816, 0.78539816 ]
 
             - NAME: random_world_scaling
-              WORLD_SCALE_RANGE: [0.95, 1.05]
+              WORLD_SCALE_RANGE: [ 0.97, 1.03 ]
 
 MODEL:
     NAME: PVRCNN
@@ -208,7 +212,7 @@ MODEL:
 
 
 OPTIMIZATION:
-    NUM_EPOCHS: 5
+    NUM_EPOCHS: 30
     BATCH_SIZE_PER_GPU: 4
     OPTIMIZER: adam_onecycle
     LR: 0.0015
@@ -237,10 +241,10 @@ SELF_TRAIN:
         USE_DATA: True
         LOSS_WEIGHT: 1.0
 
-    SCORE_THRESH: [0.2]
-    NEG_THRESH: [0.1]
-    UPDATE_PSEUDO_LABEL: [100] # [0]
-    UPDATE_PSEUDO_LABEL_INTERVAL: 500  # 4
+    SCORE_THRESH: [0.5]
+    NEG_THRESH: [0.2]
+    UPDATE_PSEUDO_LABEL: [0,1] # [0]
+    UPDATE_PSEUDO_LABEL_INTERVAL: 5  # 4
     INIT_PS: None
 
     PROG_AUG:

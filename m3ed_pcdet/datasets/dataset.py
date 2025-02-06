@@ -158,13 +158,10 @@ class DatasetTemplate(torch_data.Dataset):
 
     def fill_pseudo_labels(self, input_dict):
         gt_boxes = self_training_utils.load_ps_label(input_dict['frame_id'])
-        # gt_scores = gt_boxes[:, 8]
-        # gt_classes = gt_boxes[:, 7]
-        mask = gt_boxes[:, 7] == 1
-        gt_boxes = gt_boxes[mask]
         gt_scores = gt_boxes[:, 8]
         gt_classes = gt_boxes[:, 7]
         gt_boxes = gt_boxes[:, :7]
+
         # only suitable for only one classes, generating gt_names for prepare data
         gt_names = np.array([self.class_names[0] for n in gt_boxes])
 
