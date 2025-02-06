@@ -1,13 +1,14 @@
-import _init_path
 import argparse
 import datetime
 import glob
 import os
 from pathlib import Path
 from test import repeat_eval_ckpt
+import copy
 
 import torch
 import torch.nn as nn
+import torch.distributed as dist
 from tensorboardX import SummaryWriter
 
 from m3ed_pcdet.config import cfg, cfg_from_list, cfg_from_yaml_file, log_config_to_file
@@ -16,7 +17,6 @@ from m3ed_pcdet.models import build_network, model_fn_decorator
 from m3ed_pcdet.utils import common_utils
 from train_utils.optimization import build_optimizer, build_scheduler
 from train_utils.train_st_utils import train_model_st
-from m3ed_pcdet.models.model_utils.dsnorm import DSNorm
 
 
 def parse_config():
@@ -124,14 +124,12 @@ def main():
         )
     else:
         target_set = target_loader = target_sampler = None
-
+    cfg.ORI_MODEL = copy.deepcopy(cfg.MODEL)
     model = build_network(model_cfg=cfg.MODEL, num_class=len(cfg.CLASS_NAMES), dataset=source_set)
 
     if args.sync_bn:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-    elif cfg.get('SELF_TRAIN', None) and cfg.SELF_TRAIN.get('DSNORM', None):
-        model = DSNorm.convert_dsnorm(model)
-        
+
     model.cuda()
 
     optimizer = build_optimizer(model, cfg.OPTIMIZATION)
@@ -200,7 +198,10 @@ def main():
         max_ckpt_save_num=args.max_ckpt_save_num,
         merge_all_iters_to_one_epoch=args.merge_all_iters_to_one_epoch,
         logger=logger,
-        ema_model=None
+        ema_model=None,
+        dist=dist,
+        pretrained=args.pretrained_model,
+        dist_train=dist_train
     )
 
     if cfg.get('SELF_TRAIN', None):

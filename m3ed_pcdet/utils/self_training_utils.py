@@ -9,6 +9,7 @@ from m3ed_pcdet.models import load_data_to_gpu
 from m3ed_pcdet.utils import common_utils, commu_utils, memory_ensemble_utils
 import pickle as pkl
 import re
+from m3ed_pcdet.models.model_utils.dsnorm import set_ds_target
 
 #PSEUDO_LABELS = {}
 from multiprocessing import Manager
@@ -87,6 +88,9 @@ def save_pseudo_label_epoch(model, val_loader, rank, leave_pbar, ps_label_dir, c
 
     # Since the model is eval status, some object-level data augmentation methods such as 
     # 'random_object_rotation', 'random_object_scaling', 'normalize_object_size' are not used 
+    if cfg.SELF_TRAIN.get('DSNORM', None):
+        model.apply(set_ds_target)
+
     model.eval()
 
     for cur_it in range(total_it_each_epoch):

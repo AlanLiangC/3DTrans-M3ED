@@ -7,7 +7,6 @@ import tqdm
 
 from m3ed_pcdet.models import load_data_to_gpu
 from m3ed_pcdet.utils import common_utils
-from m3ed_pcdet.models.model_utils.dsnorm import set_ds_target
 
 
 def statistics_info(cfg, ret_dict, metric, disp_dict):
@@ -48,9 +47,6 @@ def eval_one_epoch(cfg, model, dataloader, epoch_id, logger, dist_test=False, sa
                 broadcast_buffers=False
         )
     model.eval()
-
-    if cfg.get('SELF_TRAIN', None) and cfg.SELF_TRAIN.get('DSNORM', None):
-        model.apply(set_ds_target)
 
     if cfg.LOCAL_RANK == 0:
         progress_bar = tqdm.tqdm(total=len(dataloader), leave=True, desc='eval', dynamic_ncols=True)

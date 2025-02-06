@@ -3,10 +3,11 @@ import os
 import glob
 import tqdm
 from torch.nn.utils import clip_grad_norm_
+import torch.nn as nn
 from m3ed_pcdet.utils import common_utils
-from m3ed_pcdet.utils import self_training_utils
+from m3ed_pcdet.utils.st_train_toolbox import redb_train_utils as self_training_utils
 from m3ed_pcdet.config import cfg
-from m3ed_pcdet.models.model_utils.dsnorm import set_ds_source, set_ds_target
+from m3ed_pcdet.models import build_network
 from .train_utils import save_checkpoint, checkpoint_state
 
 
@@ -21,7 +22,6 @@ def train_one_epoch_st(model, optimizer, source_reader, target_loader, model_fun
 
     ps_bbox_meter = common_utils.AverageMeter()
     ignore_ps_bbox_meter = common_utils.AverageMeter()
-    loss_meter = common_utils.AverageMeter()
     st_loss_meter = common_utils.AverageMeter()
 
     disp_dict = {}
@@ -40,50 +40,29 @@ def train_one_epoch_st(model, optimizer, source_reader, target_loader, model_fun
         model.train()
 
         optimizer.zero_grad()
+        try:
+            target_batch = next(dataloader_iter)
+        except StopIteration:
+            dataloader_iter = iter(target_loader)
+            target_batch = next(dataloader_iter)
+            print('new iters')
 
-        if cfg.SELF_TRAIN.SRC.USE_DATA:
-            # forward source data with labels
-            source_batch = source_reader.read_data()
+        # parameters for save pseudo label on the fly
+        st_loss, st_tb_dict, st_disp_dict = model_func(model, target_batch)
+        st_loss.backward()
+        st_loss_meter.update(st_loss.item())
 
-            if cfg.SELF_TRAIN.get('DSNORM', None):
-                model.apply(set_ds_source)
+        # count number of used ps bboxes in this batch
+        pos_pseudo_bbox = target_batch['pos_ps_bbox'].mean().item()
+        ign_pseudo_bbox = target_batch['ign_ps_bbox'].mean().item()
+        ps_bbox_meter.update(pos_pseudo_bbox)
+        ignore_ps_bbox_meter.update(ign_pseudo_bbox)
 
-            if cfg.SELF_TRAIN.SRC.get('SEP_LOSS_WEIGHTS', None):
-                source_batch['SEP_LOSS_WEIGHTS'] = cfg.SELF_TRAIN.SRC.SEP_LOSS_WEIGHTS
-
-            loss, tb_dict, disp_dict = model_func(model, source_batch)
-            loss = cfg.SELF_TRAIN.SRC.get('LOSS_WEIGHT', 1.0) * loss
-            loss.backward()
-            loss_meter.update(loss.item())
-            disp_dict.update({'loss': "{:.3f}({:.3f})".format(loss_meter.val, loss_meter.avg)})
-
-            if not cfg.SELF_TRAIN.SRC.get('USE_GRAD', None):
-                optimizer.zero_grad()
-
-        if cfg.SELF_TRAIN.TAR.USE_DATA:
-            try:
-                target_batch = next(dataloader_iter)
-            except StopIteration:
-                dataloader_iter = iter(target_loader)
-                target_batch = next(dataloader_iter)
-                print('new iters')
-
-            # parameters for save pseudo label on the fly
-            st_loss, st_tb_dict, st_disp_dict = model_func(model, target_batch)
-            st_loss.backward()
-            st_loss_meter.update(st_loss.item())
-
-            # count number of used ps bboxes in this batch
-            pos_pseudo_bbox = target_batch['pos_ps_bbox'].mean().item()
-            ign_pseudo_bbox = target_batch['ign_ps_bbox'].mean().item()
-            ps_bbox_meter.update(pos_pseudo_bbox)
-            ignore_ps_bbox_meter.update(ign_pseudo_bbox)
-
-            st_tb_dict = common_utils.add_prefix_to_dict(st_tb_dict, 'st_')
-            disp_dict.update(common_utils.add_prefix_to_dict(st_disp_dict, 'st_'))
-            disp_dict.update({'st_loss': "{:.3f}({:.3f})".format(st_loss_meter.val, st_loss_meter.avg),
-                            'pos_ps_box': ps_bbox_meter.avg,
-                            'ign_ps_box': ignore_ps_bbox_meter.avg})
+        st_tb_dict = common_utils.add_prefix_to_dict(st_tb_dict, 'st_')
+        disp_dict.update(common_utils.add_prefix_to_dict(st_disp_dict, 'st_'))
+        disp_dict.update({'st_loss': "{:.3f}({:.3f})".format(st_loss_meter.val, st_loss_meter.avg),
+                          'pos_ps_box': ps_bbox_meter.avg,
+                          'ign_ps_box': ignore_ps_bbox_meter.avg})
 
         clip_grad_norm_(model.parameters(), optim_cfg.GRAD_NORM_CLIP)
         optimizer.step()
@@ -99,10 +78,6 @@ def train_one_epoch_st(model, optimizer, source_reader, target_loader, model_fun
 
             if tb_log is not None:
                 tb_log.add_scalar('meta_data/learning_rate', cur_lr, accumulated_iter)
-                if cfg.SELF_TRAIN.SRC.USE_DATA:
-                    tb_log.add_scalar('train/loss', loss, accumulated_iter)
-                    for key, val in tb_dict.items():
-                        tb_log.add_scalar('train/' + key, val, accumulated_iter)
                 tb_log.add_scalar('train/st_loss', st_loss, accumulated_iter)
                 tb_log.add_scalar('train/pos_ps_bbox', ps_bbox_meter.val, accumulated_iter)
                 tb_log.add_scalar('train/ign_ps_bbox', ignore_ps_bbox_meter.val, accumulated_iter)
@@ -118,13 +93,31 @@ def train_one_epoch_st(model, optimizer, source_reader, target_loader, model_fun
 def train_model_st(model, optimizer, source_loader, target_loader, model_func, lr_scheduler, optim_cfg,
                    start_epoch, total_epochs, start_iter, rank, tb_log, ckpt_save_dir, ps_label_dir,
                    source_sampler=None, target_sampler=None, lr_warmup_scheduler=None, ckpt_save_interval=1,
-                   max_ckpt_save_num=50, merge_all_iters_to_one_epoch=False, logger=None, ema_model=None):
+                   max_ckpt_save_num=50, merge_all_iters_to_one_epoch=False, logger=None, ema_model=None, dist=None, pretrained=None, dist_train=None):
     accumulated_iter = start_iter
     if source_loader is not None:
         source_reader = common_utils.DataReader(source_loader, source_sampler)
         source_reader.construct_iter()
     else:
         source_reader = None
+
+    '''--------- Source Model for CROSS DOMAIN DETECTION ---------'''
+    if cfg.SELF_TRAIN.get('CROSS_DOMAIN_DETECTION', None) and \
+            cfg.SELF_TRAIN.CROSS_DOMAIN_DETECTION.ENABLE:
+        logger.info(
+            '********* Load Source Model for Cross-Domain-Detection *********')
+        source_model = build_network(model_cfg=cfg.ORI_MODEL,
+                              num_class=len(cfg.CLASS_NAMES),
+                              dataset=target_loader.dataset)
+        source_model.cuda()
+        source_model.load_params_from_file(filename=pretrained, to_cpu=dist,
+                                           logger=logger)
+        if dist_train:
+            source_model = nn.parallel.DistributedDataParallel(model, device_ids=[
+                cfg.LOCAL_RANK % torch.cuda.device_count()])
+        source_model.eval()
+    else:
+        source_model = None
 
     # for continue training.
     # if already exist generated pseudo label result
@@ -165,17 +158,20 @@ def train_model_st(model, optimizer, source_loader, target_loader, model_func, l
                 cur_scheduler = lr_scheduler
 
             # update pseudo label
-            # if (cur_epoch in cfg.SELF_TRAIN.UPDATE_PSEUDO_LABEL) or \
-            #         ((cur_epoch % cfg.SELF_TRAIN.UPDATE_PSEUDO_LABEL_INTERVAL == 0)
-            #          and cur_epoch != 0):
-            #     target_loader.dataset.eval()
-            #     print ("***********update pseudo label**********")
-            #     self_training_utils.save_pseudo_label_epoch(
-            #         model, target_loader, rank,
-            #         leave_pbar=True, ps_label_dir=ps_label_dir, cur_epoch=cur_epoch
-            #     )
-            #     target_loader.dataset.train()
-            
+            if (cur_epoch in cfg.SELF_TRAIN.UPDATE_PSEUDO_LABEL) or \
+                    ((cur_epoch % cfg.SELF_TRAIN.UPDATE_PSEUDO_LABEL_INTERVAL == 0)
+                     and cur_epoch != 0):
+                target_loader.dataset.eval()
+                source_loader.dataset.eval()
+                print ("***********update pseudo label**********")
+                self_training_utils.save_pseudo_label_epoch(
+                    model, target_loader, rank, leave_pbar=True,
+                    ps_label_dir=ps_label_dir, cur_epoch=cur_epoch,
+                    source_reader=source_reader, source_model=source_model
+                )
+                target_loader.dataset.train()
+                source_loader.dataset.train()
+
             # curriculum data augmentation
             if cfg.SELF_TRAIN.get('PROG_AUG', None) and cfg.SELF_TRAIN.PROG_AUG.ENABLED and \
                 (cur_epoch in cfg.SELF_TRAIN.PROG_AUG.UPDATE_AUG):

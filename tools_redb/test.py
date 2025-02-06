@@ -1,4 +1,3 @@
-import _init_path
 import argparse
 import datetime
 import glob
@@ -16,7 +15,7 @@ from m3ed_pcdet.config import cfg, cfg_from_list, cfg_from_yaml_file, log_config
 from m3ed_pcdet.datasets import build_dataloader
 from m3ed_pcdet.models import build_network
 from m3ed_pcdet.utils import common_utils
-from m3ed_pcdet.models.model_utils.dsnorm import DSNorm
+
 
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
@@ -205,10 +204,6 @@ def main():
         )
 
     model = build_network(model_cfg=cfg.MODEL, num_class=len(cfg.CLASS_NAMES), dataset=test_set)
-    
-    if cfg.get('SELF_TRAIN', None) and cfg.SELF_TRAIN.get('DSNORM', None):
-        model = DSNorm.convert_dsnorm(model)
-    
     with torch.no_grad():
         if args.eval_all:
             repeat_eval_ckpt(model, test_loader, args, eval_output_dir, logger, ckpt_dir, dist_test=dist_test)
