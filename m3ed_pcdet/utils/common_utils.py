@@ -288,7 +288,7 @@ class DataReader(object):
             if self.sampler is not None:
                 self.sampler.set_epoch(self.cur_epoch)
             self.construct_iter()
-            return self.dataloader_iter.next()
+            return next(self.dataloader_iter)
 
 
 class AverageMeter(object):
