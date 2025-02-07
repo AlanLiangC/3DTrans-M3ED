@@ -20,6 +20,24 @@ DATA_CONFIG_TAR:
     DATA_AUGMENTOR:
         DISABLE_AUG_LIST: [ 'placeholder' ] # Although the target domain uses the random_object_scaling data augmentation, the method is only used for PSEUDO-LABELED DATA
         AUG_CONFIG_LIST:
+            - NAME: gt_sampling
+              DB_INFO_PATH:
+                  - nuscenes_dbinfos_10sweeps_withvelo.pkl
+              PREPARE: {
+                  filter_by_min_points: [
+                          'car:5'
+                  ],
+              }
+
+              SAMPLE_GROUPS: [
+                      'car:10'
+              ]
+
+              NUM_POINT_FEATURES: 5
+              DATABASE_WITH_FAKELIDAR: False
+              REMOVE_EXTRA_WIDTH: [ 0.0, 0.0, 0.0 ]
+              LIMIT_WHOLE_SCENE: False
+
             - NAME: random_object_scaling
               SCALE_UNIFORM_NOISE: [ 0.75, 1.0 ]
 
@@ -242,10 +260,10 @@ SELF_TRAIN:
       GT_REDUCE: 2
       PS_GROW: 2
 
-    # DIVERSITY_SAMPLING:
-    #     PRE_NMS_PRE_SIZE: 1024
-    #     SAMPLE_CLASSES: [ 'Vehicle' ]
-    #     DOWNSAMPLE_RATE: 5
+    DIVERSITY_SAMPLING:
+        PRE_NMS_PRE_SIZE: 1024
+        SAMPLE_CLASSES: [ 'Vehicle' ]
+        DOWNSAMPLE_RATE: 5
 
     CROSS_DOMAIN_DETECTION:
         ENABLE: True
@@ -257,10 +275,8 @@ SELF_TRAIN:
         PS_OBJECT_PATH: 'placeholder'
         SAMPLE_GROUPS: {
             'car': 5,
-            'pedestrian': 5,
-            'bicycle': 5
         }
-        PS_SAMPLING_THRESH: [ 0.7, 0.6, 0.6 ]
+        PS_SAMPLING_THRESH: [0.7]
 
     TOTAL_NUM_EPOCHS: 30
 
@@ -277,29 +293,14 @@ SELF_TRAIN:
 
     SCORE_THRESH: [0.5]
     NEG_THRESH: [0.2]
-    UPDATE_PSEUDO_LABEL: [0,1] # [0]
-    UPDATE_PSEUDO_LABEL_INTERVAL: 5  # 4
+    UPDATE_PSEUDO_LABEL: [0, 10, 20] # [0]
+    UPDATE_PSEUDO_LABEL_INTERVAL: 100  # 4
     INIT_PS: None
 
     PROG_AUG:
         ENABLED: False
         UPDATE_AUG: [5, 10, 15] # [5, 10, 20, 25]
         SCALE: 1.1
-        D_CFG:
-            DISABLE_AUG_LIST: [ 'placeholder' ]
-            AUG_CONFIG_LIST:
-            - NAME: random_object_rotation
-              ROT_PROB: 0.8
-              ROT_UNIFORM_NOISE: [ -0.38539816, 0.38539816 ]
-
-            - NAME: random_world_flip
-              ALONG_AXIS_LIST: [ 'x', 'y' ]
-
-            - NAME: random_world_rotation
-              WORLD_ROT_ANGLE: [ -0.78539816, 0.78539816 ]
-
-            - NAME: random_world_scaling
-              WORLD_SCALE_RANGE: [ 0.97, 1.03 ]
 
     MEMORY_ENSEMBLE:
         ENABLED: False

@@ -246,32 +246,17 @@ SELF_TRAIN:
 
     SCORE_THRESH: [0.5]
     NEG_THRESH: [0.2]
-    UPDATE_PSEUDO_LABEL: [0,1] # [0]
-    UPDATE_PSEUDO_LABEL_INTERVAL: 5  # 4
+    UPDATE_PSEUDO_LABEL: [0] # [0]
+    UPDATE_PSEUDO_LABEL_INTERVAL: 4  # 4
     INIT_PS: None
 
     PROG_AUG:
         ENABLED: True
-        UPDATE_AUG: [5, 10, 15] # [5, 10, 20, 25]
+        UPDATE_AUG: [5, 10, 20, 25] # [5, 10, 20, 25]
         SCALE: 1.1
-        D_CFG:
-            DISABLE_AUG_LIST: [ 'placeholder' ]
-            AUG_CONFIG_LIST:
-            - NAME: random_object_rotation
-              ROT_PROB: 0.8
-              ROT_UNIFORM_NOISE: [ -0.38539816, 0.38539816 ]
-
-            - NAME: random_world_flip
-              ALONG_AXIS_LIST: [ 'x', 'y' ]
-
-            - NAME: random_world_rotation
-              WORLD_ROT_ANGLE: [ -0.78539816, 0.78539816 ]
-
-            - NAME: random_world_scaling
-              WORLD_SCALE_RANGE: [ 0.97, 1.03 ]
 
     MEMORY_ENSEMBLE:
-        ENABLED: False
+        ENABLED: True
         NAME: consistency_ensemble
         IOU_THRESH: 0.1
 
@@ -283,7 +268,7 @@ SELF_TRAIN:
             NMS_THRESH: 0.1
 
         MEMORY_VOTING:
-            ENABLED: False
+            ENABLED: True
             IGNORE_THRESH: 2
             RM_THRESH: 3
 
