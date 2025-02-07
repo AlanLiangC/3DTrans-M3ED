@@ -68,6 +68,9 @@ def train_one_epoch_st(model, optimizer, source_reader, target_loader, model_fun
                 target_batch = next(dataloader_iter)
                 print('new iters')
 
+            if cfg.SELF_TRAIN.get('DSNORM', None):
+                model.apply(set_ds_target)
+
             # parameters for save pseudo label on the fly
             st_loss, st_tb_dict, st_disp_dict = model_func(model, target_batch)
             st_loss.backward()
