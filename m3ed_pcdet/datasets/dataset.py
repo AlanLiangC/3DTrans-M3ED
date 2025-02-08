@@ -5,11 +5,12 @@ from collections import defaultdict
 import numpy as np
 import torch.utils.data as torch_data
 from .augmentor.data_augmentor import DataAugmentor
+from .augmentor.database_sampler import ps_sampling
 from .processor.data_processor import DataProcessor
 from .processor.point_feature_encoder import PointFeatureEncoder
 from ..utils import common_utils, box_utils, self_training_utils
 from ..ops.roiaware_pool3d import roiaware_pool3d_utils
-
+from m3ed_pcdet.config import cfg
 
 class DatasetTemplate(torch_data.Dataset):
     def __init__(self, dataset_cfg=None, class_names=None, training=True, root_path=None, logger=None):
@@ -242,6 +243,9 @@ class DatasetTemplate(torch_data.Dataset):
                     'gt_boxes_mask': gt_boxes_mask
                 }
             )
+
+            if cfg.get('SELF_TRAIN', None) and cfg.SELF_TRAIN.get('PS_SAMPLING', None) and cfg.SELF_TRAIN.PS_SAMPLING.ENABLE:
+                ps_sampling(data_dict)
 
         if data_dict.get('gt_boxes', None) is not None:
             selected = common_utils.keep_arrays_by_name(data_dict['gt_names'], self.class_names)

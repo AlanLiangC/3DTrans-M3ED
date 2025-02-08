@@ -10,6 +10,9 @@ from ...ops.iou3d_nms import iou3d_nms_utils
 from ...utils import box_utils, common_utils
 import os
 import io
+from m3ed_pcdet.config import cfg
+import glob
+import pickle as pkl
 
 class DataBaseSampler(object):
     def __init__(self, root_path, sampler_cfg, class_names, logger=None, client=None, oss_flag=False):
@@ -272,3 +275,111 @@ class DataBaseSampler(object):
 
         data_dict.pop('gt_boxes_mask')
         return data_dict
+    
+
+def ps_sampling(data_dict, sampled_dict=None):
+    """
+    Args:
+        data_dict:
+            gt_boxes: (N, 7 + C) [x, y, z, dx, dy, dz, heading, ...]
+
+    Returns:
+    :param sample_class_names:
+
+    """
+
+    ps_box_list = glob.glob(os.path.join(cfg.SELF_TRAIN.PS_SAMPLING.PS_OBJECT_PATH, 'ps_box_e*.pkl'))
+    ps_pnt_list = glob.glob(os.path.join(cfg.SELF_TRAIN.PS_SAMPLING.PS_OBJECT_PATH,'ps_point_e*.pkl'))
+    if cfg.SELF_TRAIN.get('DIVERSITY_SAMPLING', None):
+        ps_diversity_list = glob.glob(os.path.join(cfg.SELF_TRAIN.PS_SAMPLING.PS_OBJECT_PATH, 'ps_diverse_e*.pkl'))
+
+    try:
+
+        if cfg.SELF_TRAIN.get('DIVERSITY_SAMPLING', None):
+            ps_diversity_list.sort(key=os.path.getmtime, reverse=True)
+            with open(ps_diversity_list[-1], 'rb') as f:
+                ps_diversity = pkl.load(f)
+
+        ps_box_list.sort(key=os.path.getmtime, reverse=True)
+        with open(ps_box_list[-1], 'rb') as f:
+            ps_boxes = pkl.load(f)
+        ps_pnt_list.sort(key=os.path.getmtime, reverse=True)
+        with open(ps_pnt_list[-1], 'rb') as f:
+            ps_points = pkl.load(f)
+    except IndexError: # No file found
+        return data_dict
+
+    sample_groups = {}
+    sample_class_num = {}
+    for class_name, sample_num in cfg.SELF_TRAIN.PS_SAMPLING.SAMPLE_GROUPS.items():
+        if class_name not in cfg.CLASS_NAMES:
+            continue
+        sample_class_num[class_name] = sample_num
+        sample_groups[class_name] = {
+            'sample_num': sample_num
+        }
+
+    gt_boxes = data_dict['gt_boxes']
+    gt_names = data_dict['gt_names'].astype(str)
+    existed_boxes = gt_boxes
+    sampled_class, total_sampled_pnts = [], []
+
+    # sample_groups = cfg.SELF_TRAIN.PS_SAMPLING.SAMPLE_GROUPS
+    for class_name, sample_group in sample_groups.items():
+
+        if int(sample_group['sample_num']) > 0:
+            sample_idx = np.random.randint(len(ps_boxes[class_name]), size=int(sample_group['sample_num']))
+            sampled_boxes = np.stack([ps_boxes[class_name][i] for i in sample_idx]).astype(np.float32)[:,:7] # (ps box num, 7)
+            sampled_pnts = [ps_points[class_name][i] for i in sample_idx]
+            iou1 = iou3d_nms_utils.boxes_bev_iou_cpu(sampled_boxes[:, 0:7], existed_boxes[:, 0:7])
+            iou2 = iou3d_nms_utils.boxes_bev_iou_cpu(sampled_boxes[:, 0:7], sampled_boxes[:, 0:7])
+            iou2[range(sampled_boxes.shape[0]), range(sampled_boxes.shape[0])] = 0
+            iou1 = iou1 if iou1.shape[1] > 0 else iou2
+            valid_mask = ((iou1.max(axis=1) + iou2.max(axis=1)) == 0).nonzero()[0]
+            valid_sampled_boxes = sampled_boxes[valid_mask]
+            existed_boxes = np.concatenate((existed_boxes, valid_sampled_boxes), axis=0)
+
+            # sampled classes
+            sampled_class.extend([class_name for i in range(len(valid_mask))])
+
+            # sampled points
+            for mask_idx in range(valid_mask.shape[0]):
+                total_sampled_pnts.append(sampled_pnts[mask_idx])
+
+    sampled_gt_boxes = existed_boxes[gt_boxes.shape[0]:, :]
+    if sampled_gt_boxes.shape[0] > 0:
+        data_dict = add_sampled_ps_boxes_to_scene(data_dict,sampled_gt_boxes, total_sampled_pnts, sampled_class)
+
+    return data_dict
+
+
+def add_sampled_ps_boxes_to_scene(data_dict, sampled_ps_boxes,
+                                  sampled_ps_pnts, sampled_classes):
+
+    gt_boxes = data_dict['gt_boxes']
+    gt_names = data_dict['gt_names']
+    points = data_dict['points']
+
+    ps_pnts = np.concatenate(sampled_ps_pnts, axis=0)
+    extra_dim = points.shape[-1] -3
+    zero_dim = np.zeros((ps_pnts.shape[0], extra_dim)).reshape(
+        ps_pnts.shape[0], extra_dim)
+    ps_pnts = np.concatenate((ps_pnts, zero_dim), axis=1)
+
+    points = box_utils.remove_points_in_boxes3d(points, sampled_ps_boxes)
+
+    points = np.concatenate([ps_pnts[:, :points.shape[-1]], points], axis=0)
+    gt_names = np.concatenate([gt_names, sampled_classes], axis=0)
+    gt_boxes = np.concatenate([gt_boxes, sampled_ps_boxes], axis=0)
+
+    data_dict['gt_boxes'] = gt_boxes
+    data_dict['gt_names'] = gt_names
+    data_dict['points'] = points
+    if 'gt_classes' in data_dict.keys():
+        sampled_gt_classes = np.array([
+            cfg.CLASS_NAMES.index(n) + 1 for n in sampled_classes],
+            dtype=np.int32)
+        data_dict['gt_classes'] = np.concatenate([
+            data_dict['gt_classes'], sampled_gt_classes], axis=0)
+
+    return data_dict
