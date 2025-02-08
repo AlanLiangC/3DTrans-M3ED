@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from ...utils import box_coder_utils, common_utils, loss_utils
 from ..model_utils.model_nms_utils import class_agnostic_nms
 from .target_assigner.proposal_target_layer import ProposalTargetLayer
+from m3ed_pcdet.config import cfg
 
 
 class RoIHeadTemplate(nn.Module):
@@ -71,6 +72,13 @@ class RoIHeadTemplate(nn.Module):
         roi_scores = batch_box_preds.new_zeros((batch_size, nms_config.NMS_POST_MAXSIZE))
         roi_labels = batch_box_preds.new_zeros((batch_size, nms_config.NMS_POST_MAXSIZE), dtype=torch.long)
 
+        if cfg.get('SELF_TRAIN', None) and cfg.SELF_TRAIN.get('DIVERSITY_SAMPLING', None):
+            pre_nms_size = cfg.SELF_TRAIN.DIVERSITY_SAMPLING.PRE_NMS_PRE_SIZE
+            rois_pre = batch_box_preds.new_zeros((batch_size,
+                                                  pre_nms_size,
+                                                  batch_box_preds.shape[-1]))
+
+
         for index in range(batch_size):
             if batch_dict.get('batch_index', None) is not None:
                 assert batch_cls_preds.shape.__len__() == 2
@@ -82,6 +90,14 @@ class RoIHeadTemplate(nn.Module):
             cls_preds = batch_cls_preds[batch_mask]
 
             cur_roi_scores, cur_roi_labels = torch.max(cls_preds, dim=1)
+
+            if cfg.get('SELF_TRAIN', None) and cfg.SELF_TRAIN.get('DIVERSITY_SAMPLING', None):
+                box_scores_pre_nms, indices_pre_nms = torch.topk(
+                    cur_roi_scores, k=min(pre_nms_size,
+                                          cur_roi_scores.shape[0]))
+                boxes_pre_nms = box_preds[indices_pre_nms]
+                rois_pre[index, :len(indices_pre_nms), :] = boxes_pre_nms
+
 
             if nms_config.MULTI_CLASSES_NMS:
                 raise NotImplementedError
@@ -95,6 +111,7 @@ class RoIHeadTemplate(nn.Module):
             roi_labels[index, :len(selected)] = cur_roi_labels[selected]
 
         batch_dict['rois'] = rois
+        batch_dict['boxes_pre_nms'] = rois_pre if cfg.get('SELF_TRAIN', None) and cfg.SELF_TRAIN.get('DIVERSITY_SAMPLING', None) else None
         batch_dict['roi_scores'] = roi_scores
         batch_dict['roi_labels'] = roi_labels + 1
         batch_dict['has_class_labels'] = True if batch_cls_preds.shape[-1] > 1 else False

@@ -289,7 +289,8 @@ class Detector3DTemplate(nn.Module):
             record_dict = {
                 'pred_boxes': final_boxes,
                 'pred_scores': final_scores,
-                'pred_labels': final_labels
+                'pred_labels': final_labels,
+                'pred_boxes_pre_nms': batch_dict['boxes_pre_nms'][index] if batch_dict['boxes_pre_nms'] is not None else None
             }
             pred_dicts.append(record_dict)
 
