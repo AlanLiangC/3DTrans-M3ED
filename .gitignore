@@ -35,3 +35,4 @@ tools/ALTest
 vis_tools
 data/*
 model_record
+*.symlink
