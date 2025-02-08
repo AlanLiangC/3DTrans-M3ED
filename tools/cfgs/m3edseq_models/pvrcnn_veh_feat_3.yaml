@@ -1,22 +1,7 @@
-CLASS_NAMES: ['Vehicle']
+CLASS_NAMES: ['Vehicle', 'Pedestrian']
 
 DATA_CONFIG:
-    _BASE_CONFIG_: cfgs/dataset_configs/m3ed/da_m3ed_dataset.yaml
-    MAX_SWEEPS: 1
-    SHIFT_COOR: [0.0, 0.0, 0.0]
-    FOV_POINTS_ONLY: True
-
-    DATA_AUGMENTOR:
-        DISABLE_AUG_LIST: ['placeholder']
-        AUG_CONFIG_LIST:
-            - NAME: random_world_flip
-              ALONG_AXIS_LIST: ['x']
-
-            - NAME: random_world_rotation
-              WORLD_ROT_ANGLE: [-0.78539816, 0.78539816]
-
-            - NAME: random_world_scaling
-              WORLD_SCALE_RANGE: [0.95, 1.05]
+    _BASE_CONFIG_: cfgs/dataset_configs/m3ed/OD/m3ed_dataset_seq.yaml
 
 MODEL:
     NAME: PVRCNN
@@ -59,6 +44,16 @@ MODEL:
                 'feature_map_stride': 8,
                 'matched_threshold': 0.55,
                 'unmatched_threshold': 0.4
+            },
+            {
+                'class_name': 'Pedestrian',
+                'anchor_sizes': [[0.91, 0.86, 1.73]],
+                'anchor_rotations': [0, 1.57],
+                'anchor_bottom_heights': [0],
+                'align_center': False,
+                'feature_map_stride': 8,
+                'matched_threshold': 0.5,
+                'unmatched_threshold': 0.35
             }
         ]
 
@@ -197,7 +192,7 @@ MODEL:
 
 
 OPTIMIZATION:
-    NUM_EPOCHS: 5
+    NUM_EPOCHS: 40
     BATCH_SIZE_PER_GPU: 4
     OPTIMIZER: adam_onecycle
     LR: 0.0015
