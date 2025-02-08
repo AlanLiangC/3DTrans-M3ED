@@ -222,10 +222,10 @@ SELF_TRAIN:
         USE_DATA: True
         LOSS_WEIGHT: 1.0
 
-    SCORE_THRESH: [0.65]
-    NEG_THRESH: [0.2]
-    UPDATE_PSEUDO_LABEL: [0,1] # [0]
-    UPDATE_PSEUDO_LABEL_INTERVAL: 5  # 4
+    SCORE_THRESH: [0.7]
+    NEG_THRESH: [0.3]
+    UPDATE_PSEUDO_LABEL: [0] # [0]
+    UPDATE_PSEUDO_LABEL_INTERVAL: 4  # 4
     INIT_PS: None
 
     PROG_AUG:
@@ -249,7 +249,7 @@ SELF_TRAIN:
               WORLD_SCALE_RANGE: [ 0.97, 1.03 ]
 
     MEMORY_ENSEMBLE:
-        ENABLED: False
+        ENABLED: True
         NAME: consistency_ensemble
         IOU_THRESH: 0.1
 

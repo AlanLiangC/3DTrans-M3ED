@@ -12,7 +12,6 @@ INFO_SEQUENCES: {
     'train': [processed/Car/Urban_Day/car_urban_day_city_hall],
     # 'test': [processed/Car/Urban_Day/rittenhouse],
     'test': [processed/Car/Urban_Day/car_urban_day_city_hall],
-
 }
 
 OCC_GTSP: # occupancy gt sampling
