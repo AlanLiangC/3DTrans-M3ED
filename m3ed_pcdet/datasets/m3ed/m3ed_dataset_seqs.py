@@ -423,8 +423,10 @@ class OFFM3EDDatasetSeqs(DatasetTemplate):
 
         # load saved pseudo label for unlabel data
         if self.dataset_cfg.get('USE_PSEUDO_LABEL', None) and self.training:
-            self.fill_pseudo_labels(input_dict)
-
+            if self.dataset_cfg.get('REDB', None):
+                self.fill_pseudo_labels_redb(input_dict)
+            else:
+                self.fill_pseudo_labels(input_dict)
         # load free space
         if self.training:
             aug_names = [aug.NAME for aug in self.dataset_cfg.DATA_AUGMENTOR.AUG_CONFIG_LIST]
