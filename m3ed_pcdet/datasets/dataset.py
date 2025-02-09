@@ -273,6 +273,12 @@ class DatasetTemplate(torch_data.Dataset):
             if 'gt_classes' not in data_dict:
                 gt_classes = np.array([self.class_names.index(n) + 1 for n in data_dict['gt_names']], dtype=np.int32)
             else:
+                add_box_num = selected.shape[0] - data_dict['gt_classes'].shape[0]
+                if add_box_num > 0:
+                    add_gt_classes = np.array([self.class_names.index(n) + 1 for n in data_dict['gt_names'][-add_box_num:]], dtype=np.int32)
+                    data_dict['gt_classes'] = np.concatenate([data_dict['gt_classes'], add_gt_classes])
+                    add_gt_scores = np.ones([add_box_num]) * 0.7
+                    data_dict['gt_scores'] = np.concatenate([data_dict['gt_scores'], add_gt_scores])
                 gt_classes = data_dict['gt_classes'][selected]
                 data_dict['gt_scores'] = data_dict['gt_scores'][selected]
             gt_boxes = np.concatenate((data_dict['gt_boxes'], gt_classes.reshape(-1, 1).astype(np.float32)), axis=1)
