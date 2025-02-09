@@ -221,6 +221,10 @@ class DataBaseSampler(object):
         obj_points = np.concatenate(obj_points_list, axis=0)
         sampled_gt_names = np.array([x['name'] for x in total_valid_sampled_dict])
 
+        if cfg.DATA_CONFIG.get('SHIFT_COOR', None): # sample to target domain
+            points[:, 0:3] += np.array(cfg.DATA_CONFIG.SHIFT_COOR, dtype=np.float32)
+            sampled_gt_boxes[:, 0:3] += cfg.DATA_CONFIG.SHIFT_COOR
+
         large_sampled_gt_boxes = box_utils.enlarge_box3d(
             sampled_gt_boxes[:, 0:7], extra_width=self.sampler_cfg.REMOVE_EXTRA_WIDTH
         )
@@ -266,7 +270,7 @@ class DataBaseSampler(object):
                 valid_sampled_dict = [sampled_dict[x] for x in valid_mask]
                 valid_sampled_boxes = sampled_boxes[valid_mask]
 
-                existed_boxes = np.concatenate((existed_boxes, valid_sampled_boxes), axis=0)
+                existed_boxes = np.concatenate((existed_boxes, valid_sampled_boxes[:,:7]), axis=0)
                 total_valid_sampled_dict.extend(valid_sampled_dict)
 
         sampled_gt_boxes = existed_boxes[gt_boxes.shape[0]:, :]
