@@ -222,7 +222,7 @@ class DataBaseSampler(object):
         sampled_gt_names = np.array([x['name'] for x in total_valid_sampled_dict])
 
         if cfg.DATA_CONFIG.get('SHIFT_COOR', None): # sample to target domain
-            points[:, 0:3] += np.array(cfg.DATA_CONFIG.SHIFT_COOR, dtype=np.float32)
+            obj_points[:, 0:3] += np.array(cfg.DATA_CONFIG.SHIFT_COOR, dtype=np.float32)
             sampled_gt_boxes[:, 0:3] += cfg.DATA_CONFIG.SHIFT_COOR
 
         large_sampled_gt_boxes = box_utils.enlarge_box3d(

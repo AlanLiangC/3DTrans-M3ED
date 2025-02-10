@@ -120,6 +120,60 @@ class M3ED_CP_Dataset(DatasetTemplate):
         boxes_global[:,6] += ego2world_yaw
         return boxes_global
 
+    def generate_prediction_dicts(self, batch_dict, pred_dicts, class_names, output_path=None):
+        """
+        Args:
+            batch_dict:
+                frame_id:
+            pred_dicts: list of pred_dicts
+                pred_boxes: (N, 7), Tensor
+                pred_scores: (N), Tensor
+                pred_labels: (N), Tensor
+            class_names:
+            output_path:
+        Returns:
+        """
+        def get_template_prediction(num_samples):
+            ret_dict = {
+                'name': np.zeros(num_samples), 'score': np.zeros(num_samples),
+                'boxes_lidar': np.zeros([num_samples, 7]), 'pred_labels': np.zeros(num_samples)
+            }
+            return ret_dict
+
+        def generate_single_sample_dict(box_dict):
+            pred_scores = box_dict['pred_scores'].cpu().numpy()
+            pred_boxes = box_dict['pred_boxes'].cpu().numpy()
+            pred_labels = box_dict['pred_labels'].cpu().numpy()
+            pred_dict = get_template_prediction(pred_scores.shape[0])
+            if pred_scores.shape[0] == 0:
+                return pred_dict
+
+            if self.dataset_cfg.get('SHIFT_COOR', None):
+                pred_boxes[:, 0:3] -= self.dataset_cfg.SHIFT_COOR
+
+            # BOX FILTER
+            # if self.dataset_cfg.get('TEST', None) and self.dataset_cfg.TEST.BOX_FILTER['FOV_FILTER']:
+            #     box_preds_lidar_center = pred_boxes[:, 0:3]
+            #     fov_flag = getattr(self, f'seq_{0}').get_fov_flag(box_preds_lidar_center)
+            #     pred_boxes = pred_boxes[fov_flag]
+            #     pred_labels = pred_labels[fov_flag]
+            #     pred_scores = pred_scores[fov_flag]
+
+            pred_dict['name'] = np.array(class_names)[pred_labels - 1]
+            pred_dict['score'] = pred_scores
+            pred_dict['boxes_lidar'] = pred_boxes
+            pred_dict['pred_labels'] = pred_labels
+
+            return pred_dict
+
+        annos = []
+        for index, box_dict in enumerate(pred_dicts):
+            single_pred_dict = generate_single_sample_dict(box_dict)
+            single_pred_dict['frame_id'] = batch_dict['frame_id'][index]
+            annos.append(single_pred_dict)
+
+        return annos
+
     def get_anno_info(self, index, calib):
         frame_id = str(index).zfill(5)
         anno_dict = copy.deepcopy(self.anno_dict[frame_id])
@@ -137,6 +191,119 @@ class M3ED_CP_Dataset(DatasetTemplate):
             anno_dict['gt_boxes'] = converet_box
         return anno_dict
 
+    def kitti_eval(self, eval_det_annos, eval_gt_annos, class_names):
+        from ..kitti.kitti_object_eval_python import eval as kitti_eval
+
+        map_name_to_kitti = {
+            'car': 'Car',
+            'Vehicle': 'Car',
+            'Pedestrian': 'Pedestrian'
+        }
+
+        def transform_to_kitti_format(annos, info_with_fakelidar=False, is_gt=False):
+            for anno in annos:
+                if 'name' not in anno:
+                    anno['name'] = anno['gt_names']
+                    anno.pop('gt_names')
+
+                for k in range(anno['name'].shape[0]):
+                    if anno['name'][k] in map_name_to_kitti:
+                        anno['name'][k] = map_name_to_kitti[anno['name'][k]]
+                    else:
+                        anno['name'][k] = 'Person_sitting'
+
+                if 'boxes_lidar' in anno:
+                    gt_boxes_lidar = anno['boxes_lidar'].copy()
+                else:
+                    gt_boxes_lidar = anno['gt_boxes'].copy()
+
+                # filter by range
+                if self.dataset_cfg.get('GT_FILTER', None) and \
+                        self.dataset_cfg.GT_FILTER.RANGE_FILTER:
+                    if self.dataset_cfg.GT_FILTER.get('RANGE', None):
+                        point_cloud_range = self.dataset_cfg.GT_FILTER.RANGE
+                    else:
+                        point_cloud_range = self.point_cloud_range
+                        point_cloud_range[2] = -10
+                        point_cloud_range[5] = 10
+
+                    mask = box_utils.mask_boxes_outside_range_numpy(gt_boxes_lidar,
+                                                                    point_cloud_range,
+                                                                    min_num_corners=1)
+                    gt_boxes_lidar = gt_boxes_lidar[mask]
+                    anno['name'] = anno['name'][mask]
+                    if not is_gt:
+                        anno['score'] = anno['score'][mask]
+                        anno['pred_labels'] = anno['pred_labels'][mask]
+
+                # filter by fov
+                if is_gt and self.dataset_cfg.get('GT_FILTER', None):
+                    if self.dataset_cfg.GT_FILTER.get('FOV_FILTER', None):
+                        fov_gt_flag = self.extract_fov_gt(
+                            gt_boxes_lidar, self.dataset_cfg['FOV_DEGREE'], self.dataset_cfg['FOV_ANGLE']
+                        )
+                        gt_boxes_lidar = gt_boxes_lidar[fov_gt_flag]
+                        anno['name'] = anno['name'][fov_gt_flag]
+
+                anno['bbox'] = np.zeros((len(anno['name']), 4))
+                anno['bbox'][:, 2:4] = 50  # [0, 0, 50, 50]
+                anno['truncated'] = np.zeros(len(anno['name']))
+                anno['occluded'] = np.zeros(len(anno['name']))
+
+                if len(gt_boxes_lidar) > 0:
+                    if info_with_fakelidar:
+                        gt_boxes_lidar = box_utils.boxes3d_kitti_fakelidar_to_lidar(gt_boxes_lidar)
+
+                    gt_boxes_lidar[:, 2] -= gt_boxes_lidar[:, 5] / 2
+                    anno['location'] = np.zeros((gt_boxes_lidar.shape[0], 3))
+                    anno['location'][:, 0] = -gt_boxes_lidar[:, 1]  # x = -y_lidar
+                    anno['location'][:, 1] = -gt_boxes_lidar[:, 2]  # y = -z_lidar
+                    anno['location'][:, 2] = gt_boxes_lidar[:, 0]  # z = x_lidar
+                    dxdydz = gt_boxes_lidar[:, 3:6]
+                    anno['dimensions'] = dxdydz[:, [0, 2, 1]]  # lwh ==> lhw
+                    anno['rotation_y'] = -gt_boxes_lidar[:, 6] - np.pi / 2.0
+                    anno['alpha'] = -np.arctan2(-gt_boxes_lidar[:, 1], gt_boxes_lidar[:, 0]) + anno['rotation_y']
+                else:
+                    anno['location'] = anno['dimensions'] = np.zeros((0, 3))
+                    anno['rotation_y'] = anno['alpha'] = np.zeros(0)
+
+        # self.filter_det_results(eval_det_annos, self.oracle_infos)
+        transform_to_kitti_format(eval_det_annos)
+        transform_to_kitti_format(eval_gt_annos, info_with_fakelidar=False, is_gt=True)
+
+        kitti_class_names = []
+        for x in class_names:
+            if x in map_name_to_kitti:
+                kitti_class_names.append(map_name_to_kitti[x])
+            else:
+                kitti_class_names.append('Person_sitting')
+        ap_result_str, ap_dict = kitti_eval.get_official_eval_result(
+            gt_annos=eval_gt_annos, dt_annos=eval_det_annos, current_classes=kitti_class_names
+        )
+        return ap_result_str, ap_dict
+
+    def evaluation(self, det_annos, class_names, **kwargs):
+        if kwargs['eval_metric'] == 'kitti':
+            eval_det_annos = copy.deepcopy(det_annos)
+            eval_gt_annos = copy.deepcopy(self.anno_dict2_list())
+            return self.kitti_eval(eval_det_annos, eval_gt_annos, class_names)
+        else:
+            raise NotImplementedError
+
+    def anno_dict2_list(self):
+        anno_list = []
+        for frame_index in range(len(self.data_list_info)):
+            single_anno_info = {}
+            frame_anno_dict = self.get_anno_info(frame_index, self.get_calib(str(frame_index).zfill(5)))
+            gt_boxes_3d = frame_anno_dict['gt_boxes']
+            gt_names = frame_anno_dict['gt_names']
+            single_anno_info.update({
+                'gt_names': gt_names,
+                'gt_boxes': gt_boxes_3d[:,:7]
+            })
+            anno_list.append(single_anno_info)
+        return anno_list
+
     def __getitem__(self, index):
         frame_id = str(index).zfill(5)
         points = self.get_lidar(frame_id)
@@ -145,7 +312,9 @@ class M3ED_CP_Dataset(DatasetTemplate):
         if self.dataset_cfg.FOV_POINTS_ONLY:
             fov_flag = self.get_fov_flag(points, calib)
             points = points[fov_flag]
-
+        if self.dataset_cfg.get('SHIFT_COOR', None):
+            points[:, 0:3] += np.array(self.dataset_cfg.SHIFT_COOR, dtype=np.float32)
+        
         input_dict = {
             'points': points,
             'frame_id': frame_id,
@@ -157,6 +326,9 @@ class M3ED_CP_Dataset(DatasetTemplate):
             'gt_names': anno_dict['gt_names'],
             'gt_boxes': anno_dict['gt_boxes']
         })
+
+        if self.dataset_cfg.get('SHIFT_COOR', None):
+            input_dict['gt_boxes'][:, 0:3] += self.dataset_cfg.SHIFT_COOR
 
         if self.dataset_cfg.get('REMOVE_ORIGIN_GTS', None) and self.training:
             input_dict['points'] = box_utils.remove_points_in_boxes3d(input_dict['points'], input_dict['gt_boxes'])

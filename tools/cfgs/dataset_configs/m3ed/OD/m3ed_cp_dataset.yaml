@@ -10,13 +10,13 @@ DATA_SPLIT: {
 
 PLATFORM_PATH: {
     'train': 'car',
-    'test': 'car',
+    'test': 'falcon',
 }
 
 OCC_GTSP: # occupancy gt sampling
     VOXEL_SIZE: [0.4, 0.4, 1.0]
 
-
+# SHIFT_COOR: [0,0,-1.3]
 GET_ITEM_LIST: ["points"]
 FOV_POINTS_ONLY: True
 
