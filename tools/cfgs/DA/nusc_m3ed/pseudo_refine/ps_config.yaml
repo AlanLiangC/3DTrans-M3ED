@@ -1,5 +1,5 @@
 PS_SCORE_TH:
-  POS_TH: [0.6]
+  POS_TH: [0.5]
   NEG_TH: [0.2]
 
 TRACKING:
@@ -16,7 +16,7 @@ TRACKING:
         ASSO_TH: 0.0
   VEH_STATIC:
     RUNNING:
-        SCORE_TH: 0.5
+        SCORE_TH: 0.45
         MAX_AGE_SINCE_UPDATE: 3
         MIN_HITS_TO_BIRTH: 2
         ASSO: iou_2d
