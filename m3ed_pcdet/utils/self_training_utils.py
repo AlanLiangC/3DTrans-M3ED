@@ -194,7 +194,6 @@ def gather_and_dump_pseudo_label_result_sigle_rank(rank, ps_label_dir, cur_epoch
         with open(ps_path, 'wb') as f:
             pkl.dump(NEW_PSEUDO_LABELS, f)
 
-    commu_utils.synchronize()
     PSEUDO_LABELS.clear()
     PSEUDO_LABELS.update(NEW_PSEUDO_LABELS)
     NEW_PSEUDO_LABELS.clear()
