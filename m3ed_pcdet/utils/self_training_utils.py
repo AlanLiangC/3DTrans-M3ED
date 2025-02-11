@@ -159,7 +159,7 @@ def optim_pseudo_label_w_traj(val_loader, rank, ps_label_dir, cur_epoch):
               frame2box_key='frameid_to_box', frame_ids=list(ps_dict.keys()))
 
     NEW_PSEUDO_LABELS.update(final_ps_dict)
-    gather_and_dump_pseudo_label_result(rank, ps_label_dir, cur_epoch)
+    gather_and_dump_pseudo_label_result_sigle_rank(rank, ps_label_dir, cur_epoch)
     print(len(PSEUDO_LABELS))
 
 
@@ -186,6 +186,18 @@ def gather_and_dump_pseudo_label_result(rank, ps_label_dir, cur_epoch):
     PSEUDO_LABELS.update(NEW_PSEUDO_LABELS)
     NEW_PSEUDO_LABELS.clear()
 
+def gather_and_dump_pseudo_label_result_sigle_rank(rank, ps_label_dir, cur_epoch):
+
+    # dump new pseudo label to given dir
+    if rank == 0:
+        ps_path = os.path.join(ps_label_dir, "ps_label_e{}.pkl".format(cur_epoch))
+        with open(ps_path, 'wb') as f:
+            pkl.dump(NEW_PSEUDO_LABELS, f)
+
+    commu_utils.synchronize()
+    PSEUDO_LABELS.clear()
+    PSEUDO_LABELS.update(NEW_PSEUDO_LABELS)
+    NEW_PSEUDO_LABELS.clear()
 
 def save_pseudo_label_batch(input_dict,
                             pred_dicts=None,
