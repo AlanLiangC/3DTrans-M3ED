@@ -1,6 +1,7 @@
 import math
 import torch
-
+from scipy.spatial.transform import Rotation
+import numpy as np
 try:
     from kornia.geometry.conversions import (
         convert_points_to_homogeneous,
@@ -89,3 +90,80 @@ def bin_depths(depth_map, mode, depth_min, depth_max, num_bins, target=False):
         # Convert to integer
         indices = indices.type(torch.int64)
     return indices
+
+def ego_to_world(pose, points=None, boxes=None):
+    """
+    Transforms points and boxes from the ego frame to world frame
+    """
+    points_global, boxes_global = np.empty((0,3)), np.empty((0,9))
+    if points is not None:
+        expand_points = np.concatenate([points[:, :3], 
+                                        np.ones((points.shape[0], 1))], 
+                                        axis=-1)
+        points_global = np.dot(expand_points, pose.T)[:,:3]        
+    
+    if boxes is not None:
+        r = Rotation.from_matrix(pose[:3,:3])
+        ego2world_yaw = r.as_euler('xyz')[-1]
+        boxes_global = boxes.copy()
+        expand_centroids = np.concatenate([boxes[:, :3], 
+                                           np.ones((boxes.shape[0], 1))], 
+                                           axis=-1)
+        centroids_global = np.dot(expand_centroids, pose.T)[:,:3]        
+        boxes_global[:,:3] = centroids_global
+        boxes_global[:,6] += ego2world_yaw
+    
+    return points_global, boxes_global
+
+def world_to_ego(pose, points=None, boxes=None):
+    """
+    Transforms points and boxes from the world frame to ego frame
+    """
+    points_ego, boxes_ego = np.empty((0,3)), np.empty((0,9))
+    if points is not None:
+        expand_points_global = np.concatenate([points[:, :3], 
+                                               np.ones((points.shape[0], 1))], 
+                                               axis=-1)
+        points_ego = np.dot(expand_points_global, np.linalg.inv(pose.T))[:,:3]
+    
+    if boxes is not None:
+        r = Rotation.from_matrix(pose[:3,:3])
+        world2ego_yaw = r.as_euler('xyz')[-1]
+        boxes_ego = boxes.copy()
+        expand_centroids_global = np.concatenate([boxes[:, :3], 
+                                                  np.ones((boxes.shape[0], 1))], 
+                                                  axis=-1)
+        centroids_ego = np.dot(expand_centroids_global, np.linalg.inv(pose.T))[:,:3]       
+        boxes_ego[:,:3] = centroids_ego
+        boxes_ego[:,6] -= world2ego_yaw
+        
+    return points_ego, boxes_ego  
+
+def make_vector(angle):    
+    return np.hstack([np.cos(angle).reshape(-1,1), 
+                      np.sin(angle).reshape(-1,1)])
+
+def get_mean_rotation(angles, weights=None):
+    """
+    Computes weighted mean rotation in vector space due to wrap-around of angles
+    """
+    mean_vec = np.average(make_vector(angles), axis=0, weights=weights)
+    return np.arctan2(mean_vec[1],mean_vec[0])
+
+def get_rotation_near_weighted_mean(angles, weights=None):
+    """
+    Computes weighted mean rotation in vector space due to wrap-around of angles
+    and returns the angle that is closest to that weighted mean
+    """
+    mean_vec = np.average(make_vector(angles), axis=0, weights=weights)
+    mean_angle = np.arctan2(mean_vec[1],mean_vec[0])    
+    return angles[np.argmin(angles - mean_angle)]
+
+def get_abs_angle_diff(a1, a2):
+    """
+    Gives abs angle 
+    """
+    v1 = np.array([np.cos(a1), np.sin(a1)])
+    v2 = np.array([np.cos(a2), np.sin(a2)])
+    angle_diff = np.arccos(np.clip(np.dot(v1,v2), -1, 1))    
+    return angle_diff    
