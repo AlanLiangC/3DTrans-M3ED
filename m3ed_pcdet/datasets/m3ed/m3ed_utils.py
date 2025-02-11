@@ -104,7 +104,7 @@ def save_single_frame_gtdatabase(root_path, save_path, points, bboxes, labels, f
 
     return all_db_infos
 
-def group_samples(N, M):
+def group_samples(N, seq_name, M):
     num_groups = (N + M - 1) // M
     group_indices = []
     seq_name_to_len = []
@@ -114,7 +114,7 @@ def group_samples(N, M):
     for i in range(N):
         group_idx = i // M 
         sample_idx = i - M*group_idx
-        sqquence_name = f'm3ed_{int(M/10)}s_sequence_' + str(group_idx)
+        sqquence_name = f'm3ed_{seq_name}_{int(M/10)}s_sequence_' + str(group_idx)
         group_indices.append(sqquence_name)
         sample_idx_list.append(sample_idx)
         if group_idx < num_groups-1:

@@ -179,7 +179,7 @@ def train_model_st(model, optimizer, source_loader, target_loader, model_func, l
                 )
                 target_loader.dataset.train()
                 if rank == 0:
-                    if cfg.SELF_TRAIN.UPDATE_PSEUDO_LABEL_W_TRAJ:
+                    if cfg.SELF_TRAIN.get('UPDATE_PSEUDO_LABEL_W_TRAJ', None):
                         self_training_utils.optim_pseudo_label_w_traj(
                             target_loader, rank, ps_label_dir, cur_epoch=cur_epoch
                         )

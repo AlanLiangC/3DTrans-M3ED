@@ -1,5 +1,5 @@
 PS_SCORE_TH:
-  POS_TH: [0.5]
+  POS_TH: [0.6]
   NEG_TH: [0.2]
 
 TRACKING:

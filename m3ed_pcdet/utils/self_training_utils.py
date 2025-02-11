@@ -135,13 +135,16 @@ def optim_pseudo_label_w_traj(val_loader, rank, ps_label_dir, cur_epoch):
 
     traj_configs = yaml.load(open('cfgs/DA/nusc_m3ed/pseudo_refine/ps_config.yaml','r'), Loader=yaml.Loader)
     # static_veh
-    
+    ps_dict = {}
+    for info in val_loader.dataset.infos:
+        frame_id = info['frame_id']
+        ps_dict[frame_id] = PSEUDO_LABELS[frame_id]
     static_veh_trk_cfg = tracker_utils.prepare_track_cfg(traj_configs['TRACKING']['VEH_STATIC'])
     all_veh_trk_cfg = tracker_utils.prepare_track_cfg(traj_configs['TRACKING']['VEH_ALL'])
-    static_veh_tracks_world = tracker_utils.get_tracklets(val_loader.dataset, PSEUDO_LABELS, static_veh_trk_cfg, cls_id=0)
-    all_veh_tracks_world = tracker_utils.get_tracklets(val_loader.dataset, PSEUDO_LABELS, all_veh_trk_cfg, cls_id=0)
+    static_veh_tracks_world = tracker_utils.get_tracklets(val_loader.dataset, ps_dict, static_veh_trk_cfg, cls_id=1)
+    all_veh_tracks_world = tracker_utils.get_tracklets(val_loader.dataset, ps_dict, all_veh_trk_cfg, cls_id=1)
 
-    tracks_veh_all, tracks_veh_static = ms3d_utils.refine_veh_labels(val_loader.dataset,list(PSEUDO_LABELS.keys()),
+    tracks_veh_all, tracks_veh_static = ms3d_utils.refine_veh_labels(val_loader.dataset,list(ps_dict.keys()),
                                                                     all_veh_tracks_world, 
                                                                     static_veh_tracks_world, 
                                                                     static_trk_score_th=traj_configs['TRACKING']['VEH_STATIC']['RUNNING']['SCORE_TH'],
@@ -149,11 +152,11 @@ def optim_pseudo_label_w_traj(val_loader, rank, ps_label_dir, cur_epoch):
                                                                     refine_cfg=traj_configs['TEMPORAL_REFINEMENT'],
                                                                     save_dir=None)
 
-    final_ps_dict = ms3d_utils.update_ps(val_loader.dataset, PSEUDO_LABELS, tracks_veh_all, tracks_veh_static, tracks_ped=None, 
+    final_ps_dict = ms3d_utils.update_ps(val_loader.dataset, ps_dict, tracks_veh_all, tracks_veh_static, tracks_ped=None, 
               veh_pos_th=traj_configs['PS_SCORE_TH']['POS_TH'][0], 
               veh_nms_th=0.05, ped_nms_th=0.5, 
               frame2box_key_static='frameid_to_propboxes', 
-              frame2box_key='frameid_to_box', frame_ids=list(PSEUDO_LABELS.keys()))
+              frame2box_key='frameid_to_box', frame_ids=list(ps_dict.keys()))
 
     NEW_PSEUDO_LABELS.update(final_ps_dict)
     gather_and_dump_pseudo_label_result(rank, ps_label_dir, cur_epoch)

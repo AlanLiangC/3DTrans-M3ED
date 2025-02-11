@@ -17,7 +17,7 @@ def get_pose(dataset, frame_id):
         pose = np.dot(np.linalg.inv(dataset.infos[infos_idx]['car_from_global']), 
                np.linalg.inv(dataset.infos[infos_idx]['ref_from_car']))
         return pose
-    elif dataset.dataset_cfg.DATASET in ['WaymoDataset','CustomDataset', 'OFFM3EDDataset']:
+    elif dataset.dataset_cfg.DATASET in ['WaymoDataset','CustomDataset', 'OFFM3EDDatasetSeqs']:
         infos_idx = dataset.frameid_to_idx[frame_id]
         return dataset.infos[infos_idx]['pose']
     else:
@@ -39,13 +39,8 @@ def get_lidar(dataset, frame_id):
         return dataset.get_lidar(sequence_name, sample_idx)
     elif dataset.dataset_cfg.DATASET == 'CustomDataset':
         return dataset.get_lidar(dataset.infos[infos_idx]['lidar_path'])    
-    elif dataset.dataset_cfg.DATASET == 'OFFM3EDDataset':
-        if dataset.platform != 'Car':
-            virtual = True
-        else:
-            virtual = False
-        # return dataset.get_lidar(infos_idx, virtual, fov_only=True)   
-        return dataset.get_lidar(infos_idx, virtual)   
+    elif dataset.dataset_cfg.DATASET == 'OFFM3EDDatasetSeqs':  
+        return dataset.get_lidar(infos_idx)   
 
     else:
         raise NotImplementedError
@@ -58,7 +53,7 @@ def get_frame_id(dataset, info):
         return info['point_cloud']['frame_id']
     elif dataset.dataset_cfg.DATASET in ['NuScenesDataset','LyftDataset']:
         return Path(info['lidar_path']).stem
-    elif dataset.dataset_cfg.DATASET in ['WaymoDataset','CustomDataset', 'OFFM3EDDataset']:
+    elif dataset.dataset_cfg.DATASET in ['WaymoDataset','CustomDataset', 'OFFM3EDDatasetSeqs']:
         return info['frame_id']
     else:
         raise NotImplementedError
@@ -74,7 +69,7 @@ def get_sequence_name(dataset, frame_id):
         return dataset.infos[infos_idx]['scene_name']
     elif dataset.dataset_cfg.DATASET in ['WaymoDataset','CustomDataset']:
         return dataset.infos[infos_idx]['point_cloud']['lidar_sequence']
-    elif dataset.dataset_cfg.DATASET in ['OFFM3EDDataset']:
+    elif dataset.dataset_cfg.DATASET in ['OFFM3EDDatasetSeqs']:
         return dataset.infos[infos_idx]['sample_sequence_name']
     else:
         raise NotImplementedError
@@ -93,7 +88,7 @@ def get_sample_idx(dataset, frame_id):
         return dataset.infos[infos_idx]['sample_idx']        
     elif dataset.dataset_cfg.DATASET in ['WaymoDataset','CustomDataset']:
         return dataset.infos[infos_idx]['point_cloud']['sample_idx']
-    elif dataset.dataset_cfg.DATASET in ['OFFM3EDDataset']:
+    elif dataset.dataset_cfg.DATASET in ['OFFM3EDDatasetSeqs']:
         return dataset.infos[infos_idx]['sample_idx']
     else:
         raise NotImplementedError    
@@ -109,7 +104,7 @@ def get_timestamp(dataset, frame_id):
         return dataset.infos[infos_idx]['timestamp']  
     elif dataset.dataset_cfg.DATASET == 'WaymoDataset':
         return dataset.infos[infos_idx]['metadata']['timestamp_micros']
-    elif dataset.dataset_cfg.DATASET in ['CustomDataset', 'OFFM3EDDataset']:
+    elif dataset.dataset_cfg.DATASET in ['CustomDataset', 'OFFM3EDDatasetSeqs']:
         return dataset.infos[infos_idx]['timestamp']
     else:
         raise NotImplementedError                

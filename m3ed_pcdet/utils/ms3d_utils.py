@@ -10,7 +10,7 @@ from m3ed_pcdet.utils.compatibility_utils import get_sequence_name, get_sample_i
 
 # For loader utils
 from m3ed_pcdet.utils import common_utils
-from m3ed_pcdet.datasets import build_dataloader
+# from m3ed_pcdet.datasets import build_dataloader
 
 # ms3d key functions
 from m3ed_pcdet.utils.compatibility_utils import get_lidar, get_pose
@@ -540,16 +540,16 @@ def load_if_exists(folder, name):
         return load_pkl(str(ps_path))        
     return None
 
-def load_dataset(cfg, split):
-    # Get target dataset    
-    cfg.DATA_SPLIT.test = split
-    if cfg.get('SAMPLED_INTERVAL', False):
-        cfg.SAMPLED_INTERVAL.test = 1
-    logger = common_utils.create_logger()
-    target_set, _, _ = build_dataloader(
-                dataset_cfg=cfg,
-                class_names=cfg.CLASS_NAMES,
-                batch_size=1, logger=logger, training=False, dist=False, workers=1
-            )      
-    return target_set
+# def load_dataset(cfg, split):
+#     # Get target dataset    
+#     cfg.DATA_SPLIT.test = split
+#     if cfg.get('SAMPLED_INTERVAL', False):
+#         cfg.SAMPLED_INTERVAL.test = 1
+#     logger = common_utils.create_logger()
+#     target_set, _, _ = build_dataloader(
+#                 dataset_cfg=cfg,
+#                 class_names=cfg.CLASS_NAMES,
+#                 batch_size=1, logger=logger, training=False, dist=False, workers=1
+#             )      
+#     return target_set
 

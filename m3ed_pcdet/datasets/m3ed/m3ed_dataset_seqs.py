@@ -10,18 +10,21 @@ import numpy as np
 from ..dataset import DatasetTemplate
 from . import m3ed_utils
 from ...utils import box_utils
-from m3ed_pcdet.config import cfg
+from scipy.spatial.transform import Rotation
 
 class M3ED_SEQ:
     def __init__(self, sequence_path, dataset_cfg, class_names):
+        self.infos = []   
+        self.seq_name_to_len = {}
         self.dataset_cfg = dataset_cfg
         self.sequence_path = sequence_path
+        self.platform = str(sequence_path).split('/')[-3]
+        self.sequence_name = str(sequence_path).split('/')[-1]
         self.class_names = class_names
         self.ori_class_names = ['Vehicle', 'Pedestrian', 'Pedestrian']
         files = os.listdir(self.sequence_path)
         h5_files = [file for file in files if file.endswith('.h5')]
         for file in h5_files:
-
             if 'data' in file:
                 self.sequence_data_path = self.sequence_path /file
             if 'pose' in file:
@@ -44,6 +47,8 @@ class M3ED_SEQ:
 
         Liar_T_RGB = m3ed_utils.transform_inv(Event_T_RGB) @ (Event_T_Lidar)
         self.extristric = Liar_T_RGB
+        self.lidar_map_left = f['/ouster/ts_start_map_prophesee_left_t']
+
         K = np.eye(3)
         K[0, 0] = rgb_camera_calib['intrinsics'][0]
         K[1, 1] = rgb_camera_calib['intrinsics'][1]
@@ -59,6 +64,55 @@ class M3ED_SEQ:
             self.sweeps_num = min([self.sweeps_num, len(anno_dict)])
         self.anno_dict = anno_dict
 
+    # for track
+        sequence_name, seq_name_to_len, sample_idx_list = m3ed_utils.group_samples(self.sweeps_num, self.sequence_name, 50) # 5s
+        for idx in range(self.sweeps_num):
+            self.seq_name_to_len[sequence_name[idx]] = seq_name_to_len[idx]
+            if self.platform != 'Car' and self.sequence_name !='srt_under_bridge_2':
+                self.infos.append(
+                    dict(
+                        frame_id = str(idx).zfill(5),
+                        sample_idx = sample_idx_list[idx],
+                        sample_sequence_name = sequence_name[idx],
+                        timestamp = np.int64(self.lidar_map_left[idx]),
+                        pose = self.get_virtual_pose(idx) if self.platform == 'Spot' else self.get_virtual_pose(idx, drone=True)
+                    ))
+            else:
+                self.infos.append(
+                    dict(
+                        frame_id = str(idx).zfill(5),
+                        sample_idx = sample_idx_list[idx],
+                        sample_sequence_name = sequence_name[idx],
+                        timestamp = np.int64(self.lidar_map_left[idx]),
+                        pose = m3ed_utils.transform_inv(self.lidar_pose[idx])
+                    ))
+
+    def convert_points_to_virtual(self, points, index, drone=False):
+        # n --> virtual
+        Ln_T_L0 = m3ed_utils.transform_inv(self.lidar_pose[index])
+        r = Rotation.from_matrix(Ln_T_L0[:3,:3])
+        Rn_T_R0_x, Rn_T_R0_y, _ = r.as_euler('xyz')
+        R_x = m3ed_utils.rotx(Rn_T_R0_x)
+        R_y = m3ed_utils.roty(Rn_T_R0_y)
+        virtual_r_matrix = R_y @ R_x
+        virtual_pose = np.eye(4)
+        virtual_pose[:3, :3] = virtual_r_matrix
+        if drone:
+            position_n = Ln_T_L0[:3,3]
+            change_z = position_n[2] - 1.7
+            virtual_translate = np.eye(4)
+            virtual_translate[2,3] = change_z
+            virtual_pose = virtual_translate @ virtual_pose
+        virtual_points = self.convert_points_from_world(points, virtual_pose)
+        return virtual_points
+
+    
+    def convert_points_from_world(self, points, pose):
+        hom_points = m3ed_utils.cart_to_hom(points[:,:3])
+        converted_points = hom_points @ pose.T
+        points[:,:3] = converted_points[:,:3]
+        return points
+
     def get_lidar(self, idx):
         ouster_sweep = self.sequence_data[idx][...]
         packets = client.Packets([client.LidarPacket(opacket, self.metadata) for opacket in ouster_sweep], self.metadata)
@@ -71,6 +125,13 @@ class M3ED_SEQ:
         points = np.concatenate([xyz, signal[:,:,None]], axis=-1)
         points = points.reshape(-1,4)
         filtered_points = points[~np.all(points[:,:3] == [0, 0, 0], axis=1)]
+        
+        if self.platform != 'Car':
+            if self.platform == 'Falcon':
+                filtered_points = self.convert_points_to_virtual(filtered_points, idx, drone=True)
+            else:
+                if self.sequence_name != 'srt_under_bridge_2':
+                    filtered_points = self.convert_points_to_virtual(filtered_points, idx)
         return filtered_points
 
     def remove_ego_points(self, points, center_radius=1.0):
@@ -111,6 +172,28 @@ class M3ED_SEQ:
         poses = np.concatenate(pose_all, axis=0).astype(np.float32)
 
         return points, poses
+
+    def get_virtual_pose(self, index, drone=False):
+        # n --> virtual
+        Ln_T_L0 = m3ed_utils.transform_inv(self.lidar_pose[index])
+        r = Rotation.from_matrix(Ln_T_L0[:3,:3])
+        Rn_T_R0_x, Rn_T_R0_y, _ = r.as_euler('xyz')
+        R_x = m3ed_utils.rotx(Rn_T_R0_x)
+        R_y = m3ed_utils.roty(Rn_T_R0_y)
+        virtual_r_matrix = R_y @ R_x
+        virtual_pose = np.eye(4)
+        virtual_pose[:3, :3] = virtual_r_matrix
+
+        if drone:
+            position_n = Ln_T_L0[:3,3]
+            change_z = position_n[2] - 1.7
+            virtual_translate = np.eye(4)
+            virtual_translate[2,3] = change_z
+            virtual_pose = virtual_translate @ virtual_pose
+
+        # virtual --> 0
+        vir_T_L0 = Ln_T_L0 @ m3ed_utils.transform_inv(virtual_pose) # L0_T_Ln @ Ln_T_vir
+        return vir_T_L0
 
     def get_fov_flag(self, points, mask=True, return_depth=False, downsample=1):
         extend_points = m3ed_utils.cart_to_hom(points[:,:3])
@@ -200,11 +283,15 @@ class OFFM3EDDatasetSeqs(DatasetTemplate):
         super().__init__(
             dataset_cfg=dataset_cfg, class_names=class_names, training=training, root_path=root_path, logger=logger
         )
+        self.infos = []   
+        self.frameid_to_idx = {}
+        self.seq_name_to_len = {}
         sequences = dataset_cfg.INFO_SEQUENCES[self.mode]
         sequence_paths = [Path(self.root_path) / seq_path for seq_path in \
                               sequences]
         self.ori_class_names = ['Vehicle', 'Pedestrian', 'Pedestrian']
         self.include_m3ed_sequence_data(sequence_paths)
+        self.platform = getattr(getattr(self, 'seq_0'), 'platform')
 
     def include_m3ed_sequence_data(self, sequence_paths):
         if self.logger is not None:
@@ -215,17 +302,29 @@ class OFFM3EDDatasetSeqs(DatasetTemplate):
             setattr(self, f'seq_{i}', M3ED_SEQ(sequence_paths[i], 
                                                self.dataset_cfg,
                                                self.class_names))
-
+            self.infos.extend(getattr(getattr(self, f'seq_{i}'), 'infos'))
+            self.seq_name_to_len.update(getattr(getattr(self, f'seq_{i}'), 'seq_name_to_len'))
         seq_frame_num = [getattr(getattr(self, f'seq_{i}'), 'sweeps_num') \
                          for i in range(self.seq_num)]
         frame_info = []
+
+        for idx in range(sum(seq_frame_num)):
+            self.frameid_to_idx[str(idx).zfill(5)] = idx 
+
         for i, num in enumerate(seq_frame_num):
             frame_info.extend(
                 [f'{i}_{frame_id}' for frame_id in range(num)]
             )
+
         self.frame_info = frame_info
         if self.logger is not None:
             self.logger.info('Total samples for M3ED dataset: %d' % (len(frame_info)))
+
+    def get_lidar(self, idx):
+        single_frame_info = self.frame_info[idx]
+        seq_idx, frame_idx = [eval(fac) for fac in single_frame_info.split('_')]
+        points = getattr(self, f'seq_{seq_idx}').get_lidar(frame_idx)
+        return points
 
     def generate_prediction_dicts(self, batch_dict, pred_dicts, class_names, output_path=None):
         """
