@@ -241,6 +241,19 @@ class M3ED_SEQ:
             imgpts[:, 0] = np.clip(imgpts[:, 0], 0, self.image_shape[0] - 1)
             return imgpts, depth
 
+    def get_anno_info(self, index):
+        frame_id = str(index).zfill(5)
+        gt_boxes_info = self.anno_dict[frame_id]['gt_boxes']
+        gt_names = np.array(self.ori_class_names)[np.abs(gt_boxes_info[:,-2].astype(np.int32)) - 1]
+        gt_boxes_lidar = gt_boxes_info[:,:7]
+        if self.dataset_cfg.get('SHIFT_COOR', None):
+            gt_boxes_lidar[:, 0:3] += self.dataset_cfg.SHIFT_COOR
+        anno_info = dict({
+            'gt_names': gt_names,
+            'gt_boxes': gt_boxes_lidar
+        })
+        return anno_info
+
     def __getitem__(self, index):
         input_dict = {}
         input_dict['frame_id'] = str(index).zfill(5)
@@ -325,6 +338,20 @@ class OFFM3EDDatasetSeqs(DatasetTemplate):
         seq_idx, frame_idx = [eval(fac) for fac in single_frame_info.split('_')]
         points = getattr(self, f'seq_{seq_idx}').get_lidar(frame_idx)
         return points
+
+    def get_anno_info(self, idx):
+        single_frame_info = self.frame_info[idx]
+        seq_idx, frame_idx = [eval(fac) for fac in single_frame_info.split('_')]
+        anno_info = getattr(self, f'seq_{seq_idx}').get_anno_info(frame_idx)
+        return anno_info
+
+    def get_fov_flag(self, idx):
+        points = self.get_lidar(idx)
+        single_frame_info = self.frame_info[idx]
+        seq_idx, _ = [eval(fac) for fac in single_frame_info.split('_')]
+        fov_flag = getattr(self, f'seq_{seq_idx}').get_fov_flag(points)
+        return points, fov_flag
+
 
     def generate_prediction_dicts(self, batch_dict, pred_dicts, class_names, output_path=None):
         """

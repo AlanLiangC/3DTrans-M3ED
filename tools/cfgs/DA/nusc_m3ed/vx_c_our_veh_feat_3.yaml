@@ -224,13 +224,13 @@ SELF_TRAIN:
     NEG_THRESH: [0.3]
     DSNORM: True
     UPDATE_PSEUDO_LABEL: [0] # [0]
-    UPDATE_PSEUDO_LABEL_INTERVAL: 4  # 4
+    UPDATE_PSEUDO_LABEL_INTERVAL: 10  # 4
     INIT_PS: None
     UPDATE_PSEUDO_LABEL_W_TRAJ: True
 
     PROG_AUG:
         ENABLED: True
-        UPDATE_AUG: [1, 5, 10, 15] # [5, 10, 20, 25]
+        UPDATE_AUG: [5, 10, 20, 25] # [5, 10, 20, 25]
         SCALE: 1.1
 
     MEMORY_ENSEMBLE:
