@@ -10,11 +10,10 @@ DATA_SPLIT: {
 
 INFO_SEQUENCES: {
     'train': [
-      processed/Spot/Outdoor_Day/penno_short_loop,
+      processed/Falcon/Outdoor_Day/penno_parking_1,
     ],
     'test': [
-      processed/Spot/Outdoor_Night/penno_short_loop,
-      processed/Spot/Outdoor_Day/srt_green_loop
+      processed/Falcon/Outdoor_Day/penno_parking_2,
       ],
 }
 

@@ -10,19 +10,17 @@ DATA_CONFIG:
     SHIFT_COOR: [0.0, 0.0, 1.8]
 
 DATA_CONFIG_TAR:
-    _BASE_CONFIG_: cfgs/dataset_configs/m3ed/DA/da_m3ed_dataset_spot.yaml
+    _BASE_CONFIG_: cfgs/dataset_configs/m3ed/DA/da_m3ed_dataset_falcon.yaml
     TARGET: True
     FOV_POINTS_ONLY: False
     USE_PSEUDO_LABEL: True
     CLASS_NAMES: ['Vehicle']
-    SHIFT_COOR: [0.0, 0.0, 0.0]
+    SHIFT_COOR: [0.0, 0.0, 2.0]
 
     DATA_AUGMENTOR:
         DISABLE_AUG_LIST: [ 'placeholder' ] # Although the target domain uses the random_object_scaling data augmentation, the method is only used for PSEUDO-LABELED DATA
         AUG_CONFIG_LIST:
-            # - NAME: random_object_scaling
-            #   SCALE_UNIFORM_NOISE: [ 0.75, 1.0 ]
-              
+
             - NAME: random_object_rotation
               ROT_PROB: 0.8
               ROT_UNIFORM_NOISE: [ -0.38539816, 0.38539816 ]
@@ -37,10 +35,10 @@ DATA_CONFIG_TAR:
               WORLD_SCALE_RANGE: [ 0.97, 1.03 ]
 
 MODEL:
-    NAME: PVRCNN
+    NAME: VoxelRCNN
 
     VFE:
-        NAME: MeanVFE
+        NAME: DynMeanVFE
 
     BACKBONE_3D:
         NAME: VoxelBackBone8x
@@ -59,92 +57,50 @@ MODEL:
         NUM_UPSAMPLE_FILTERS: [256, 256]
 
     DENSE_HEAD:
-        NAME: AnchorHeadSingle
+        NAME: CenterHead
         CLASS_AGNOSTIC: False
 
-        USE_DIRECTION_CLASSIFIER: True
-        DIR_OFFSET: 0.78539
-        DIR_LIMIT_OFFSET: 0.0
-        NUM_DIR_BINS: 2
-
-        ANCHOR_GENERATOR_CONFIG: [
-            {
-                'class_name': 'car',
-                'anchor_sizes': [[4.2, 2.0, 1.6]],
-                'anchor_rotations': [0, 1.57],
-                'anchor_bottom_heights': [0],
-                'align_center': False,
-                'feature_map_stride': 8,
-                'matched_threshold': 0.55,
-                'unmatched_threshold': 0.4
-            }
+        CLASS_NAMES_EACH_HEAD: [
+            [ 'car', 'Vehicle' ]
         ]
 
+        SHARED_CONV_CHANNEL: 64
+        USE_BIAS_BEFORE_NORM: True
+        NUM_HM_CONV: 2
+        SEPARATE_HEAD_CFG:
+            HEAD_ORDER: [ 'center', 'center_z', 'dim', 'rot' ]
+            HEAD_DICT: {
+                'center': { 'out_channels': 2, 'num_conv': 2 },
+                'center_z': { 'out_channels': 1, 'num_conv': 2 },
+                'dim': { 'out_channels': 3, 'num_conv': 2 },
+                'rot': { 'out_channels': 2, 'num_conv': 2 },
+            }
+
         TARGET_ASSIGNER_CONFIG:
-            NAME: AxisAlignedTargetAssigner
-            POS_FRACTION: -1.0
-            SAMPLE_SIZE: 512
-            NORM_BY_NUM_EXAMPLES: False
-            MATCH_HEIGHT: False
-            BOX_CODER: ResidualCoder
+            FEATURE_MAP_STRIDE: 8
+            NUM_MAX_OBJS: 500
+            GAUSSIAN_OVERLAP: 0.1
+            MIN_RADIUS: 2
 
         LOSS_CONFIG:
             LOSS_WEIGHTS: {
                 'cls_weight': 1.0,
                 'loc_weight': 2.0,
-                'dir_weight': 0.2,
-                'code_weights': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+                'code_weights': [ 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 ]
             }
 
-    PFE:
-        NAME: VoxelSetAbstraction
-        POINT_SOURCE: raw_points
-        NUM_KEYPOINTS: 4096
-        NUM_OUTPUT_FEATURES: 128
-        SAMPLE_METHOD: FPS
-
-        FEATURES_SOURCE: ['bev', 'x_conv3', 'x_conv4', 'raw_points']
-        SA_LAYER:
-            raw_points:
-                MLPS: [[16, 16], [16, 16]]
-                POOL_RADIUS: [0.4, 0.8]
-                NSAMPLE: [16, 16]
-            x_conv1:
-                DOWNSAMPLE_FACTOR: 1
-                MLPS: [[16, 16], [16, 16]]
-                POOL_RADIUS: [0.4, 0.8]
-                NSAMPLE: [16, 16]
-            x_conv2:
-                DOWNSAMPLE_FACTOR: 2
-                MLPS: [[32, 32], [32, 32]]
-                POOL_RADIUS: [0.8, 1.2]
-                NSAMPLE: [16, 32]
-            x_conv3:
-                DOWNSAMPLE_FACTOR: 4
-                MLPS: [[64, 64], [64, 64]]
-                POOL_RADIUS: [1.2, 2.4]
-                NSAMPLE: [16, 32]
-            x_conv4:
-                DOWNSAMPLE_FACTOR: 8
-                MLPS: [[64, 64], [64, 64]]
-                POOL_RADIUS: [2.4, 4.8]
-                NSAMPLE: [16, 32]
-
-    POINT_HEAD:
-        NAME: PointHeadSimple
-        CLS_FC: [256, 256]
-        CLASS_AGNOSTIC: True
-        USE_POINT_FEATURES_BEFORE_FUSION: True
-        TARGET_CONFIG:
-            GT_EXTRA_WIDTH: [0.2, 0.2, 0.2]
-        LOSS_CONFIG:
-            LOSS_REG: smooth-l1
-            LOSS_WEIGHTS: {
-                'point_cls_weight': 1.0,
-            }
+        POST_PROCESSING:
+            SCORE_THRESH: 0.1
+            POST_CENTER_LIMIT_RANGE: [ -75.2, -75.2, -2, 75.2, 75.2, 4 ]
+            MAX_OBJ_PER_SAMPLE: 500
+            NMS_CONFIG:
+                NMS_TYPE: nms_gpu
+                NMS_THRESH: 0.7
+                NMS_PRE_MAXSIZE: 4096
+                NMS_POST_MAXSIZE: 500
 
     ROI_HEAD:
-        NAME: PVRCNNHead
+        NAME: VoxelRCNNHead
         CLASS_AGNOSTIC: True
 
         SHARED_FC: [256, 256]
@@ -165,13 +121,33 @@ MODEL:
                 NMS_PRE_MAXSIZE: 1024
                 NMS_POST_MAXSIZE: 100
                 NMS_THRESH: 0.7
+                # NMS_PRE_MAXSIZE: 4096
+                # NMS_POST_MAXSIZE: 300
+                # NMS_THRESH: 0.85
 
         ROI_GRID_POOL:
+            FEATURES_SOURCE: ['x_conv2', 'x_conv3', 'x_conv4']
+            PRE_MLP: True
             GRID_SIZE: 6
-            MLPS: [[64, 64], [64, 64]]
-            POOL_RADIUS: [0.8, 1.6]
-            NSAMPLE: [16, 16]
-            POOL_METHOD: max_pool
+            POOL_LAYERS:
+                x_conv2:
+                    MLPS: [ [ 64, 64 ] ]
+                    QUERY_RANGES: [ [ 3, 3, 2 ] ]
+                    POOL_RADIUS: [ 0.4 ]
+                    NSAMPLE: [ 16 ]
+                    POOL_METHOD: max_pool
+                x_conv3:
+                    MLPS: [ [ 64, 64 ] ]
+                    QUERY_RANGES: [ [ 3, 3, 2 ] ]
+                    POOL_RADIUS: [ 0.8 ]
+                    NSAMPLE: [ 16 ]
+                    POOL_METHOD: max_pool
+                x_conv4:
+                    MLPS: [ [ 64, 64 ] ]
+                    QUERY_RANGES: [ [ 3, 3, 2 ] ]
+                    POOL_RADIUS: [ 1.6 ]
+                    NSAMPLE: [ 16 ]
+                    POOL_METHOD: max_pool
 
         TARGET_CONFIG:
             BOX_CODER: ResidualCoder
@@ -179,7 +155,7 @@ MODEL:
             FG_RATIO: 0.5
 
             SAMPLE_ROI_BY_EACH_CLASS: True
-            CLS_SCORE_TYPE: raw_roi_iou
+            CLS_SCORE_TYPE: roi_iou
 
             CLS_FG_THRESH: 0.75
             CLS_BG_THRESH: 0.25
@@ -201,7 +177,7 @@ MODEL:
 
     POST_PROCESSING:
         RECALL_THRESH_LIST: [0.3, 0.5, 0.7]
-        SCORE_THRESH: 0.2
+        SCORE_THRESH: 0.1
         OUTPUT_RAW_SCORE: False
 
         EVAL_METRIC: kitti
@@ -244,17 +220,18 @@ SELF_TRAIN:
         USE_DATA: True
         LOSS_WEIGHT: 1.0
 
-    SCORE_THRESH: [0.5]
-    NEG_THRESH: [0.2]
+    SCORE_THRESH: [0.7]
+    NEG_THRESH: [0.3]
     DSNORM: True
     UPDATE_PSEUDO_LABEL: [0] # [0]
-    UPDATE_PSEUDO_LABEL_INTERVAL: 4  # 4
+    UPDATE_PSEUDO_LABEL_INTERVAL: 10  # 4
     INIT_PS: None
+    UPDATE_PSEUDO_LABEL_W_TRAJ: True
 
     PROG_AUG:
-        ENABLED: False
-        UPDATE_AUG: [5, 10, 20, 25]
-        SCALE: 1.05
+        ENABLED: True
+        UPDATE_AUG: [5, 10, 20, 25] # [5, 10, 20, 25]
+        SCALE: 1.1
 
     MEMORY_ENSEMBLE:
         ENABLED: True
@@ -272,4 +249,3 @@ SELF_TRAIN:
             ENABLED: True
             IGNORE_THRESH: 2
             RM_THRESH: 3
-

@@ -68,14 +68,14 @@ class M3ED_SEQ:
         sequence_name, seq_name_to_len, sample_idx_list = m3ed_utils.group_samples(self.sweeps_num, self.sequence_name, 50) # 5s
         for idx in range(self.sweeps_num):
             self.seq_name_to_len[sequence_name[idx]] = seq_name_to_len[idx]
-            if self.platform != 'Car' and self.sequence_name !='srt_under_bridge_2':
+            if self.dataset_cfg.get('VIRTUAL_POSE', False):
                 self.infos.append(
                     dict(
                         frame_id = str(idx).zfill(5),
                         sample_idx = sample_idx_list[idx],
                         sample_sequence_name = sequence_name[idx],
                         timestamp = np.int64(self.lidar_map_left[idx]),
-                        pose = self.get_virtual_pose(idx, to_world=TabError) if self.platform == 'Spot' else self.get_virtual_pose(idx, drone=True, to_world=True)
+                        pose = self.get_virtual_pose(idx, to_world=True) if self.platform == 'Spot' else self.get_virtual_pose(idx, drone=True, to_world=True)
                     ))
             else:
                 self.infos.append(
@@ -125,13 +125,13 @@ class M3ED_SEQ:
         points = points.reshape(-1,4)
         filtered_points = points[~np.all(points[:,:3] == [0, 0, 0], axis=1)]
         
-        if virtual:
-            if self.platform != 'Car':
-                if self.platform == 'Falcon':
-                    filtered_points = self.convert_points_to_virtual(filtered_points, idx, drone=True)
-                else:
-                    if self.sequence_name != 'srt_under_bridge_2':
-                        filtered_points = self.convert_points_to_virtual(filtered_points, idx)
+        # if virtual:
+        #     if self.platform != 'Car':
+        #         if self.platform == 'Falcon':
+        #             filtered_points = self.convert_points_to_virtual(filtered_points, idx, drone=True)
+        #         else:
+        #             if self.sequence_name != 'srt_under_bridge_2':
+        #                 filtered_points = self.convert_points_to_virtual(filtered_points, idx)
         return filtered_points
 
     def remove_ego_points(self, points, center_radius=1.0):
@@ -304,8 +304,6 @@ class M3ED_SEQ:
             input_dict['gt_boxes'][:, 0:3] += self.dataset_cfg.SHIFT_COOR
 
         return input_dict
-
-
 
 class OFFM3EDDatasetSeqs(DatasetTemplate):
 

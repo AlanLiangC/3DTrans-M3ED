@@ -10,19 +10,16 @@ DATA_CONFIG:
     SHIFT_COOR: [0.0, 0.0, 1.8]
 
 DATA_CONFIG_TAR:
-    _BASE_CONFIG_: cfgs/dataset_configs/m3ed/DA/da_m3ed_dataset_spot.yaml
+    _BASE_CONFIG_: cfgs/dataset_configs/m3ed/DA/da_m3ed_dataset_falcon.yaml
     TARGET: True
     FOV_POINTS_ONLY: False
     USE_PSEUDO_LABEL: True
     CLASS_NAMES: ['Vehicle']
-    SHIFT_COOR: [0.0, 0.0, 0.0]
+    SHIFT_COOR: [0.0, 0.0, 2.0]
 
     DATA_AUGMENTOR:
         DISABLE_AUG_LIST: [ 'placeholder' ] # Although the target domain uses the random_object_scaling data augmentation, the method is only used for PSEUDO-LABELED DATA
         AUG_CONFIG_LIST:
-            # - NAME: random_object_scaling
-            #   SCALE_UNIFORM_NOISE: [ 0.75, 1.0 ]
-              
             - NAME: random_object_rotation
               ROT_PROB: 0.8
               ROT_UNIFORM_NOISE: [ -0.38539816, 0.38539816 ]
@@ -250,11 +247,11 @@ SELF_TRAIN:
     UPDATE_PSEUDO_LABEL: [0] # [0]
     UPDATE_PSEUDO_LABEL_INTERVAL: 4  # 4
     INIT_PS: None
-
+    UPDATE_PSEUDO_LABEL_W_TRAJ: True
     PROG_AUG:
         ENABLED: False
-        UPDATE_AUG: [5, 10, 20, 25]
-        SCALE: 1.05
+        UPDATE_AUG: [5, 10, 20, 25] # [5, 10, 20, 25]
+        SCALE: 1.1
 
     MEMORY_ENSEMBLE:
         ENABLED: True
