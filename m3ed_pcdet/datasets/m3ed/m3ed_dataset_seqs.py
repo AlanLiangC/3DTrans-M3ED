@@ -370,12 +370,11 @@ class OFFM3EDDatasetSeqs(DatasetTemplate):
         anno_info = getattr(self, f'seq_{seq_idx}').get_anno_info(frame_idx)
         return anno_info
 
-    def get_fov_flag(self, idx):
-        points = self.get_lidar(idx)
+    def get_fov_flag(self, idx, points):
         single_frame_info = self.frame_info[idx]
         seq_idx, _ = [eval(fac) for fac in single_frame_info.split('_')]
         fov_flag = getattr(self, f'seq_{seq_idx}').get_fov_flag(points)
-        return points, fov_flag
+        return fov_flag
 
 
     def generate_prediction_dicts(self, batch_dict, pred_dicts, class_names, output_path=None):
