@@ -75,7 +75,7 @@ class M3ED_SEQ:
                         sample_idx = sample_idx_list[idx],
                         sample_sequence_name = sequence_name[idx],
                         timestamp = np.int64(self.lidar_map_left[idx]),
-                        pose = self.get_virtual_pose(idx) if self.platform == 'Spot' else self.get_virtual_pose(idx, drone=True)
+                        pose = self.get_virtual_pose(idx, to_world=TabError) if self.platform == 'Spot' else self.get_virtual_pose(idx, drone=True, to_world=True)
                     ))
             else:
                 self.infos.append(
@@ -106,14 +106,13 @@ class M3ED_SEQ:
         virtual_points = self.convert_points_from_world(points, virtual_pose)
         return virtual_points
 
-    
     def convert_points_from_world(self, points, pose):
         hom_points = m3ed_utils.cart_to_hom(points[:,:3])
         converted_points = hom_points @ pose.T
         points[:,:3] = converted_points[:,:3]
         return points
 
-    def get_lidar(self, idx):
+    def get_lidar(self, idx, virtual=False):
         ouster_sweep = self.sequence_data[idx][...]
         packets = client.Packets([client.LidarPacket(opacket, self.metadata) for opacket in ouster_sweep], self.metadata)
         scans = iter(client.Scans(packets))
@@ -126,12 +125,13 @@ class M3ED_SEQ:
         points = points.reshape(-1,4)
         filtered_points = points[~np.all(points[:,:3] == [0, 0, 0], axis=1)]
         
-        if self.platform != 'Car':
-            if self.platform == 'Falcon':
-                filtered_points = self.convert_points_to_virtual(filtered_points, idx, drone=True)
-            else:
-                if self.sequence_name != 'srt_under_bridge_2':
-                    filtered_points = self.convert_points_to_virtual(filtered_points, idx)
+        if virtual:
+            if self.platform != 'Car':
+                if self.platform == 'Falcon':
+                    filtered_points = self.convert_points_to_virtual(filtered_points, idx, drone=True)
+                else:
+                    if self.sequence_name != 'srt_under_bridge_2':
+                        filtered_points = self.convert_points_to_virtual(filtered_points, idx)
         return filtered_points
 
     def remove_ego_points(self, points, center_radius=1.0):
@@ -173,7 +173,7 @@ class M3ED_SEQ:
 
         return points, poses
 
-    def get_virtual_pose(self, index, drone=False):
+    def get_virtual_pose(self, index, drone=False, to_world=False):
         # n --> virtual
         Ln_T_L0 = m3ed_utils.transform_inv(self.lidar_pose[index])
         r = Rotation.from_matrix(Ln_T_L0[:3,:3])
@@ -190,10 +190,11 @@ class M3ED_SEQ:
             virtual_translate = np.eye(4)
             virtual_translate[2,3] = change_z
             virtual_pose = virtual_translate @ virtual_pose
-
-        # virtual --> 0
-        vir_T_L0 = Ln_T_L0 @ m3ed_utils.transform_inv(virtual_pose) # L0_T_Ln @ Ln_T_vir
-        return vir_T_L0
+        if to_world:
+            vir_T_L0 = Ln_T_L0 @ m3ed_utils.transform_inv(virtual_pose) # L0_T_Ln @ Ln_T_vir
+            return vir_T_L0
+        
+        return virtual_pose
 
     def get_fov_flag(self, points, mask=True, return_depth=False, downsample=1):
         extend_points = m3ed_utils.cart_to_hom(points[:,:3])
@@ -241,13 +242,38 @@ class M3ED_SEQ:
             imgpts[:, 0] = np.clip(imgpts[:, 0], 0, self.image_shape[0] - 1)
             return imgpts, depth
 
+    def convert_boxes_from_vir_to_n(self, index, boxes, drone=False):
+        # vir pose
+        virtual_pose = self.get_virtual_pose(index, drone)
+        pose = m3ed_utils.transform_inv(virtual_pose)
+        if not drone:
+            boxes[:,2] += 1.3
+        r = Rotation.from_matrix(pose[:3,:3])
+        ego2world_yaw = r.as_euler('xyz')[-1]
+        boxes_global = boxes.copy()
+        expand_centroids = np.concatenate([boxes[:, :3], 
+                                           np.ones((boxes.shape[0], 1))], 
+                                           axis=-1)
+        centroids_global = np.dot(expand_centroids, pose.T)[:,:3]        
+        boxes_global[:,:3] = centroids_global
+        boxes_global[:,6] += ego2world_yaw
+        return boxes_global
+
     def get_anno_info(self, index):
         frame_id = str(index).zfill(5)
-        gt_boxes_info = self.anno_dict[frame_id]['gt_boxes']
+        gt_boxes_info = self.anno_dict[frame_id]['gt_boxes'].copy()
         gt_names = np.array(self.ori_class_names)[np.abs(gt_boxes_info[:,-2].astype(np.int32)) - 1]
         gt_boxes_lidar = gt_boxes_info[:,:7]
-        if self.dataset_cfg.get('SHIFT_COOR', None):
-            gt_boxes_lidar[:, 0:3] += self.dataset_cfg.SHIFT_COOR
+
+        if self.platform != 'Car':
+            if self.platform == 'Spot':
+                drone = False
+            else:
+                drone = True
+            if self.sequence_name != 'srt_under_bridge_2':
+                gt_boxes_lidar = self.convert_boxes_from_vir_to_n(index, gt_boxes_lidar, drone)
+            else:
+                gt_boxes_lidar[:,2] += 1.3
         anno_info = dict({
             'gt_names': gt_names,
             'gt_boxes': gt_boxes_lidar
@@ -268,19 +294,18 @@ class M3ED_SEQ:
         if self.dataset_cfg.get('SHIFT_COOR', None):
             points[:, 0:3] += np.array(self.dataset_cfg.SHIFT_COOR, dtype=np.float32)
         input_dict['points'] = points
-        frame_id = str(index).zfill(5)
         
-        gt_boxes_info = self.anno_dict[frame_id]['gt_boxes']
-        gt_names = np.array(self.ori_class_names)[np.abs(gt_boxes_info[:,-2].astype(np.int32)) - 1]
-        gt_boxes_lidar = gt_boxes_info[:,:7]
-        if self.dataset_cfg.get('SHIFT_COOR', None):
-            gt_boxes_lidar[:, 0:3] += self.dataset_cfg.SHIFT_COOR
+        anno_dict = self.get_anno_info(index)
         input_dict.update({
-            'gt_names': gt_names,
-            'gt_boxes': gt_boxes_lidar
+            'gt_names': anno_dict['gt_names'],
+            'gt_boxes': anno_dict['gt_boxes']
         })
+        if self.dataset_cfg.get('SHIFT_COOR', None):
+            input_dict['gt_boxes'][:, 0:3] += self.dataset_cfg.SHIFT_COOR
 
         return input_dict
+
+
 
 class OFFM3EDDatasetSeqs(DatasetTemplate):
 
@@ -500,12 +525,12 @@ class OFFM3EDDatasetSeqs(DatasetTemplate):
         return ap_result_str, ap_dict
 
     def anno_dict2_list(self):
-        anno_dict = copy.deepcopy(getattr(getattr(self, f'seq_{0}'), 'anno_dict'))
         anno_list = []
-        for frame_id, box_info in anno_dict.items():
+        for frame_index in range(len(self.frame_info)):
             single_anno_info = {}
-            gt_boxes_3d = box_info['gt_boxes']
-            gt_names = np.array(self.ori_class_names)[np.abs(gt_boxes_3d[:,-2].astype(np.int32)) - 1]
+            frame_anno_dict = self.get_anno_info(frame_index)
+            gt_boxes_3d = frame_anno_dict['gt_boxes']
+            gt_names = frame_anno_dict['gt_names']
             single_anno_info.update({
                 'gt_names': gt_names,
                 'gt_boxes': gt_boxes_3d[:,:7]
@@ -536,7 +561,6 @@ class OFFM3EDDatasetSeqs(DatasetTemplate):
         single_frame_info = self.frame_info[index]
         seq_idx, frame_idx = [eval(fac) for fac in single_frame_info.split('_')]
         input_dict = getattr(self, f'seq_{seq_idx}').__getitem__(frame_idx)
-
 
         if self.dataset_cfg.get('REMOVE_ORIGIN_GTS', None) and self.training:
             input_dict['points'] = box_utils.remove_points_in_boxes3d(input_dict['points'], input_dict['gt_boxes'])
