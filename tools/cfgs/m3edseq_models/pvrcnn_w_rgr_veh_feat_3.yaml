@@ -31,7 +31,7 @@ DATA_CONFIG:
               WORLD_SCALE_RANGE: [ 0.97, 1.03 ]
 
             - NAME: random_global_rotation_xy
-              WORLD_ROT_ANGLE: [-0.17453292, 0.17453292]
+              WORLD_ROT_ANGLE: [-0.08726646, 0.08726646]
 
 MODEL:
     NAME: PVRCNN

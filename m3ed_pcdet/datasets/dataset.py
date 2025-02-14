@@ -298,6 +298,10 @@ class DatasetTemplate(torch_data.Dataset):
             new_index = np.random.randint(self.__len__())
             return self.__getitem__(new_index)
 
+        if self.training and data_dict['points'].shape[0]== 0:
+            new_index = np.random.randint(self.__len__())
+            return self.__getitem__(new_index)
+
         data_dict.pop('gt_names', None)
         data_dict.pop('gt_classes', None)
 
