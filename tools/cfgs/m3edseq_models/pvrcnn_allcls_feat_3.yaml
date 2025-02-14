@@ -1,22 +1,7 @@
-CLASS_NAMES: ['Vehicle']
+CLASS_NAMES: ['Vehicle', 'Pedestrian']
 
 DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/m3ed/OD/m3ed_dataset_seq.yaml
-    INFO_SEQUENCES: {
-        'train': [
-            processed/Car/Urban_Day/car_urban_day_city_hall,
-            processed/Car/Urban_Day/penno_big_loop,
-            processed/Car/Urban_Day/rittenhouse,
-            processed/Car/Urban_Day/ucity_small_loop,
-            ],
-        'test': [processed/Car/Urban_Day/car_urban_day_city_hall],
-    }
-    POINT_FEATURE_ENCODING: {
-        encoding_type: absolute_coordinates_encoding,
-        used_feature_list: ['x', 'y', 'z'],
-        src_feature_list: ['x', 'y', 'z', 'intensity', 'timestamp'],
-    }
-
 
 MODEL:
     NAME: PVRCNN
@@ -60,6 +45,16 @@ MODEL:
                 'matched_threshold': 0.55,
                 'unmatched_threshold': 0.4
             },
+            {
+                'class_name': 'Pedestrian',
+                'anchor_sizes': [[0.91, 0.86, 1.73]],
+                'anchor_rotations': [0, 1.57],
+                'anchor_bottom_heights': [0],
+                'align_center': False,
+                'feature_map_stride': 8,
+                'matched_threshold': 0.5,
+                'unmatched_threshold': 0.35
+            }
         ]
 
         TARGET_ASSIGNER_CONFIG:
