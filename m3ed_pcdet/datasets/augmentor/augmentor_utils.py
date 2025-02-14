@@ -75,6 +75,27 @@ def global_rotation(gt_boxes, points, rot_range):
 
     return gt_boxes, points
 
+def random_global_rotation_xy(gt_boxes, points, rot_range):
+    """
+    Args:
+        gt_boxes: (N, 7 + C), [x, y, z, dx, dy, dz, heading, [vx], [vy]]
+        points: (M, 3 + C),
+        rot_range: [min, max]
+    Returns:
+    """
+    noise_rotation_x = np.random.uniform(rot_range[0], rot_range[1])
+    noise_rotation_y = np.random.uniform(rot_range[0], rot_range[1])
+    R_x = common_utils.rotx(noise_rotation_x)
+    R_y = common_utils.roty(noise_rotation_y)
+    virtual_r_matrix = R_y @ R_x
+    virtual_pose = np.eye(4)
+    virtual_pose[:3, :3] = virtual_r_matrix
+    # rotation with x
+    points_xyz, box_geo = common_utils.ego_transform_to(virtual_pose, points=points[:,:3], boxes = gt_boxes[:,:7])
+    points[:,:3] = points_xyz
+    gt_boxes[:,:7] = box_geo
+
+    return gt_boxes, points
 
 def global_scaling(gt_boxes, points, scale_range):
     """

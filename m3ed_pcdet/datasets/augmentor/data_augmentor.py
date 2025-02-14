@@ -126,6 +126,20 @@ class DataAugmentor(object):
         data_dict['points'] = points
         return data_dict
     
+    def random_global_rotation_xy(self, data_dict=None, config=None):
+        if data_dict is None:
+            return partial(self.random_global_rotation_xy, config=config)
+        rot_range = config['WORLD_ROT_ANGLE']
+        if not isinstance(rot_range, list):
+            rot_range = [-rot_range, rot_range]
+        gt_boxes, points = augmentor_utils.random_global_rotation_xy(
+            data_dict['gt_boxes'], data_dict['points'], rot_range=rot_range
+        )
+        
+        data_dict['gt_boxes'] = gt_boxes
+        data_dict['points'] = points
+        return data_dict
+    
     def random_world_scaling(self, data_dict=None, config=None):
         if data_dict is None:
             return partial(self.random_world_scaling, config=config)

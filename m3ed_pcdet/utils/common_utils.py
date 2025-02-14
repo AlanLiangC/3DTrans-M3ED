@@ -11,6 +11,7 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.autograd import Variable,Function
+from scipy.spatial.transform import Rotation
 
 from ..utils.spconv_utils import spconv
 
@@ -65,6 +66,42 @@ def rotate_points_along_z(points, angle):
     points_rot = torch.cat((points_rot, points[:, :, 3:]), dim=-1)
     return points_rot.numpy() if is_numpy else points_rot
 
+def rotx(t):
+    """ 3D Rotation about the x-axis. """
+    c = np.cos(t)
+    s = np.sin(t)
+    return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
+
+
+def roty(t):
+    """ Rotation about the y-axis. """
+    c = np.cos(t)
+    s = np.sin(t)
+    return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
+
+def ego_transform_to(pose, points=None, boxes=None):
+    """
+    Transforms points and boxes from the ego frame to another pose
+    """
+    points_global, boxes_global = np.empty((0,3)), np.empty((0,9))
+    if points is not None:
+        expand_points = np.concatenate([points[:, :3], 
+                                        np.ones((points.shape[0], 1))], 
+                                        axis=-1)
+        points_global = np.dot(expand_points, pose.T)[:,:3]        
+    
+    if boxes is not None:
+        r = Rotation.from_matrix(pose[:3,:3])
+        ego2world_yaw = r.as_euler('xyz')[-1]
+        boxes_global = boxes.copy()
+        expand_centroids = np.concatenate([boxes[:, :3], 
+                                           np.ones((boxes.shape[0], 1))], 
+                                           axis=-1)
+        centroids_global = np.dot(expand_centroids, pose.T)[:,:3]        
+        boxes_global[:,:3] = centroids_global
+        boxes_global[:,6] += ego2world_yaw
+    
+    return points_global, boxes_global
 
 def mask_points_by_range(points, limit_range):
     mask = (points[:, 0] >= limit_range[0]) & (points[:, 0] <= limit_range[3]) \
