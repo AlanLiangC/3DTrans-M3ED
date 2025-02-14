@@ -99,7 +99,7 @@ class M3ED_SEQ:
         virtual_pose[:3, :3] = virtual_r_matrix
         if drone:
             position_n = Ln_T_L0[:3,3]
-            change_z = position_n[2] - 1.7
+            change_z = position_n[2]
             virtual_translate = np.eye(4)
             virtual_translate[2,3] = change_z
             virtual_pose = virtual_translate @ virtual_pose
@@ -173,7 +173,7 @@ class M3ED_SEQ:
 
         return points, poses
 
-    def get_virtual_pose(self, index, drone=False, to_world=False):
+    def get_virtual_pose(self, index, drone=False, to_world=False, label=False):
         # n --> virtual
         Ln_T_L0 = m3ed_utils.transform_inv(self.lidar_pose[index])
         r = Rotation.from_matrix(Ln_T_L0[:3,:3])
@@ -186,7 +186,11 @@ class M3ED_SEQ:
 
         if drone:
             position_n = Ln_T_L0[:3,3]
-            change_z = position_n[2] - 1.7
+            if label:
+                change_z = position_n[2] - 1.7
+            else:
+                change_z = position_n[2]
+
             virtual_translate = np.eye(4)
             virtual_translate[2,3] = change_z
             virtual_pose = virtual_translate @ virtual_pose
@@ -242,9 +246,9 @@ class M3ED_SEQ:
             imgpts[:, 0] = np.clip(imgpts[:, 0], 0, self.image_shape[0] - 1)
             return imgpts, depth
 
-    def convert_boxes_from_vir_to_n(self, index, boxes, drone=False):
+    def convert_boxes_from_vir_to_n(self, index, boxes, drone=False, label=False):
         # vir pose
-        virtual_pose = self.get_virtual_pose(index, drone)
+        virtual_pose = self.get_virtual_pose(index, drone, label=label)
         pose = m3ed_utils.transform_inv(virtual_pose)
         if not drone:
             boxes[:,2] += 1.3
@@ -271,14 +275,30 @@ class M3ED_SEQ:
             else:
                 drone = True
             if self.sequence_name != 'srt_under_bridge_2':
-                gt_boxes_lidar = self.convert_boxes_from_vir_to_n(index, gt_boxes_lidar, drone)
+                gt_boxes_lidar = self.convert_boxes_from_vir_to_n(index, gt_boxes_lidar, drone, label=True)
             else:
                 gt_boxes_lidar[:,2] += 1.3
+
         anno_info = dict({
             'gt_names': gt_names,
             'gt_boxes': gt_boxes_lidar
         })
         return anno_info
+
+    def convert_boxes_from_n_to_vir(self, index, boxes, drone=False):
+        # vir pose
+        pose = self.get_virtual_pose(index, drone)
+
+        r = Rotation.from_matrix(pose[:3,:3])
+        ego2world_yaw = r.as_euler('xyz')[-1]
+        boxes_global = boxes.copy()
+        expand_centroids = np.concatenate([boxes[:, :3], 
+                                           np.ones((boxes.shape[0], 1))], 
+                                           axis=-1)
+        centroids_global = np.dot(expand_centroids, pose.T)[:,:3]        
+        boxes_global[:,:3] = centroids_global
+        boxes_global[:,6] += ego2world_yaw
+        return boxes_global
 
     def __getitem__(self, index):
         input_dict = {}
@@ -291,17 +311,27 @@ class M3ED_SEQ:
             fov_flag = self.get_fov_flag(points)
             points = points[fov_flag]
 
-        if self.dataset_cfg.get('SHIFT_COOR', None):
-            points[:, 0:3] += np.array(self.dataset_cfg.SHIFT_COOR, dtype=np.float32)
-        input_dict['points'] = points
-        
         anno_dict = self.get_anno_info(index)
         input_dict.update({
             'gt_names': anno_dict['gt_names'],
             'gt_boxes': anno_dict['gt_boxes']
         })
+
+        if self.dataset_cfg.get('VIRTUAL_POSE', False):
+            box_lidar = input_dict['gt_boxes'].copy()
+            if self.platform == 'Spot':
+                points = self.convert_points_to_virtual(points, index)
+                box_lidar = self.convert_boxes_from_n_to_vir(index, box_lidar)
+            if self.platform == 'Falcon':
+                points = self.convert_points_to_virtual(points, index, drone=True)
+                box_lidar = self.convert_boxes_from_n_to_vir(index, box_lidar, drone=True)
+            input_dict['gt_boxes'] = box_lidar
+
         if self.dataset_cfg.get('SHIFT_COOR', None):
+            points[:, 0:3] += np.array(self.dataset_cfg.SHIFT_COOR, dtype=np.float32)
             input_dict['gt_boxes'][:, 0:3] += self.dataset_cfg.SHIFT_COOR
+
+        input_dict['points'] = points
 
         return input_dict
 
@@ -524,10 +554,18 @@ class OFFM3EDDatasetSeqs(DatasetTemplate):
     def anno_dict2_list(self):
         anno_list = []
         for frame_index in range(len(self.frame_info)):
+            single_frame_info = self.frame_info[frame_index]
             single_anno_info = {}
             frame_anno_dict = self.get_anno_info(frame_index)
             gt_boxes_3d = frame_anno_dict['gt_boxes']
             gt_names = frame_anno_dict['gt_names']
+            if self.dataset_cfg.get('VIRTUAL_POSE', False):
+                seq_idx, frame_idx = [eval(fac) for fac in single_frame_info.split('_')]
+                if self.platform == 'Falcon':
+                    gt_boxes_3d =  getattr(self, f'seq_{seq_idx}').convert_boxes_from_n_to_vir(frame_idx, gt_boxes_3d, drone=True)
+                else:
+                    gt_boxes_3d =  getattr(self, f'seq_{seq_idx}').convert_boxes_from_n_to_vir(frame_idx, gt_boxes_3d)
+
             single_anno_info.update({
                 'gt_names': gt_names,
                 'gt_boxes': gt_boxes_3d[:,:7]

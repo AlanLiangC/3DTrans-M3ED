@@ -21,27 +21,27 @@ do
 done
 echo $PORT
 
-srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
-    --batch_size 6 \
-    --cfg_file cfgs/DA/nusc_m3ed/car_falcon/pvrcnn_st3d_w_ros_veh_feat_3.yaml \
-    --pretrained_model ../model_zoo/nuscenes/pvrcnn_nusc_trained.pth \
-    --eval_fov_only
+# srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
+#     --batch_size 6 \
+#     --cfg_file cfgs/DA/nusc_m3ed/car_falcon/pvrcnn_st3d_w_ros_veh_feat_3.yaml \
+#     --pretrained_model ../model_zoo/nuscenes/pvrcnn_nusc_trained.pth \
+#     --eval_fov_only
+
+# srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
+#     --batch_size 6 \
+#     --cfg_file cfgs/DA/nusc_m3ed/car_falcon/pvrcnn_st3d_wo_ros_veh_feat_3.yaml \
+#     --pretrained_model ../model_zoo/nuscenes/pvrcnn_nusc_trained.pth \
+#     --eval_fov_only
+
+# srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
+#     --batch_size 6 \
+#     --cfg_file cfgs/DA/nusc_m3ed/car_falcon/pvrcnn_st3d_plus_w_ros_veh_feat_3.yaml \
+#     --pretrained_model ../model_zoo/nuscenes/pvrcnn_nusc_trained.pth \
+#     --eval_fov_only
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 6 \
-    --cfg_file cfgs/DA/nusc_m3ed/car_falcon/pvrcnn_st3d_wo_ros_veh_feat_3.yaml \
-    --pretrained_model ../model_zoo/nuscenes/pvrcnn_nusc_trained.pth \
-    --eval_fov_only
-
-srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
-    --batch_size 6 \
-    --cfg_file cfgs/DA/nusc_m3ed/car_falcon/pvrcnn_st3d_plus_w_ros_veh_feat_3.yaml \
-    --pretrained_model ../model_zoo/nuscenes/pvrcnn_nusc_trained.pth \
-    --eval_fov_only
-
-srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
-    --batch_size 6 \
-    --cfg_file cfgs/DA/nusc_m3ed/car_falcon/pvrcnn_st3d_wo_ros_veh_feat_3.yaml \
+    --cfg_file cfgs/DA/nusc_m3ed/car_falcon/pvrcnn_st3d_plus_wo_ros_veh_feat_3.yaml \
     --pretrained_model ../model_zoo/nuscenes/pvrcnn_nusc_trained.pth \
     --eval_fov_only
 
