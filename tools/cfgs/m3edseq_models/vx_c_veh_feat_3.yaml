@@ -16,6 +16,7 @@ DATA_CONFIG:
         used_feature_list: ['x', 'y', 'z'],
         src_feature_list: ['x', 'y', 'z', 'intensity', 'timestamp'],
     }
+    SHIFT_COOR: [0.0, 0.0, 1.5]
 
 MODEL:
     NAME: VoxelRCNN
