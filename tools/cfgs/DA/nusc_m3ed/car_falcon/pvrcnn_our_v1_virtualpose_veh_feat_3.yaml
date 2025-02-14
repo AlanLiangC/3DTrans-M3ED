@@ -15,7 +15,7 @@ DATA_CONFIG_TAR:
     FOV_POINTS_ONLY: False
     USE_PSEUDO_LABEL: True
     CLASS_NAMES: ['Vehicle']
-    SHIFT_COOR: [0.0, 0.0, 2.0]
+    SHIFT_COOR: [0.0, 0.0, 0.0]
     VIRTUAL_POSE: True
 
     DATA_AUGMENTOR:
