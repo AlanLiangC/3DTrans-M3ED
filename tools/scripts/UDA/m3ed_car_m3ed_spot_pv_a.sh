@@ -24,35 +24,35 @@ echo $PORT
 srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 8 \
     --cfg_file cfgs/DA/m3ed_m3ed/car_spot/pvrcnn_st3d_w_ros_veh_feat_3.yaml \
-    --pretrained_model ../output/m3edseq_models/pvrcnn_veh_feat_3/default/ckpt/checkpoint_epoch_40.pth \
+    --pretrained_model ../output/m3edseq_models/pvrcnn_veh_feat_3/default/ckpt/checkpoint_epoch_15.pth \
     --eval_fov_only
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 8 \
     --cfg_file cfgs/DA/m3ed_m3ed/car_spot/pvrcnn_st3d_wo_ros_veh_feat_3.yaml \
-    --pretrained_model ../output/m3edseq_models/pvrcnn_veh_feat_3/default/ckpt/checkpoint_epoch_40.pth \
+    --pretrained_model ../output/m3edseq_models/pvrcnn_veh_feat_3/default/ckpt/checkpoint_epoch_15.pth \
     --eval_fov_only
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 8 \
     --cfg_file cfgs/DA/m3ed_m3ed/car_spot/pvrcnn_st3d_plus_w_ros_veh_feat_3.yaml \
-    --pretrained_model ../output/m3edseq_models/pvrcnn_veh_feat_3/default/ckpt/checkpoint_epoch_40.pth \
+    --pretrained_model ../output/m3edseq_models/pvrcnn_veh_feat_3/default/ckpt/checkpoint_epoch_15.pth \
     --eval_fov_only
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 8 \
     --cfg_file cfgs/DA/m3ed_m3ed/car_spot/pvrcnn_st3d_plus_wo_ros_veh_feat_3.yaml \
-    --pretrained_model ../output/m3edseq_models/pvrcnn_veh_feat_3/default/ckpt/checkpoint_epoch_40.pth \
+    --pretrained_model ../output/m3edseq_models/pvrcnn_veh_feat_3/default/ckpt/checkpoint_epoch_15.pth \
     --eval_fov_only
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 8 \
     --cfg_file cfgs/DA/m3ed_m3ed/car_spot/pvrcnn_ms3d_veh_feat_3.yaml \
-    --pretrained_model ../output/m3edseq_models/pvrcnn_veh_feat_3/default/ckpt/checkpoint_epoch_40.pth \
+    --pretrained_model ../output/m3edseq_models/pvrcnn_veh_feat_3/default/ckpt/checkpoint_epoch_15.pth \
     --eval_fov_only
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 8 \
     --cfg_file cfgs/DA/m3ed_m3ed/car_spot/pvrcnn_our_v0_veh_feat_3.yaml \
-    --pretrained_model ../output/m3edseq_models/pvrcnn_veh_feat_3/default/ckpt/checkpoint_epoch_40.pth \
+    --pretrained_model ../output/m3edseq_models/pvrcnn_veh_feat_3/default/ckpt/checkpoint_epoch_15.pth \
     --eval_fov_only
