@@ -95,7 +95,7 @@ def random_global_rotation_xy(gt_boxes, points, rot_range):
     points[:,:3] = points_xyz
     gt_boxes[:,:7] = box_geo
 
-    return gt_boxes, points
+    return gt_boxes, points, noise_rotation_x, noise_rotation_y
 
 def global_scaling(gt_boxes, points, scale_range):
     """

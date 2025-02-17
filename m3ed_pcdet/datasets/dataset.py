@@ -320,6 +320,8 @@ class DatasetTemplate(torch_data.Dataset):
             try:
                 if key in ['voxels', 'voxel_num_points']:
                     ret[key] = np.concatenate(val, axis=0)
+                elif key in ['noise_rotation_x', 'noise_rotation_y']:
+                    ret[key] = np.array(val)
                 elif key in ['points', 'voxel_coords']:
                     coors = []
                     for i, coor in enumerate(val):
