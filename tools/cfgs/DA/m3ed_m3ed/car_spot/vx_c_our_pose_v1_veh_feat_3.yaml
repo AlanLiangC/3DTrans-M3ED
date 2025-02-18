@@ -13,6 +13,7 @@ DATA_CONFIG_TAR:
     USE_PSEUDO_LABEL: True
     CLASS_NAMES: ['Vehicle']
     SHIFT_COOR: [0.0, 0.0, 0.0]
+    VIRTUAL_POSE: True
 
     DATA_AUGMENTOR:
         DISABLE_AUG_LIST: [ 'placeholder' ] # Although the target domain uses the random_object_scaling data augmentation, the method is only used for PSEUDO-LABELED DATA
