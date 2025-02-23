@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 from .voxelrcnn_head import VoxelRCNNHead
-from torch.distributions import Normal, Independent, kl
 from torch.autograd import Variable
+import torch.distributions as dist
+import torch.nn.functional as F
 
 class VoxelRCNNPoseHead(VoxelRCNNHead):
     def __init__(self, backbone_channels, model_cfg, point_cloud_range, voxel_size, num_class=1, **kwargs):
@@ -48,7 +49,9 @@ class VoxelRCNNPoseHead(VoxelRCNNHead):
         # Distribution
         mu = self.fc1(shared_features)
         logvar = self.fc2(shared_features)
-        z = self.reparametrize(mu, logvar)
+        total_z_sigma = F.softplus(logvar) 
+        z_dist = dist.Independent(dist.normal.Normal(mu,total_z_sigma),1)
+        z = z_dist.rsample()
         rcnn_cls = self.cls_pred_layer(self.cls_fc_layers(z))
         rcnn_reg = self.reg_pred_layer(self.reg_fc_layers(shared_features))
 
@@ -62,8 +65,6 @@ class VoxelRCNNPoseHead(VoxelRCNNHead):
         else:
             targets_dict['rcnn_cls'] = rcnn_cls
             targets_dict['rcnn_reg'] = rcnn_reg
-            targets_dict['pred_mu'] = mu
-            targets_dict['pred_logvar'] = logvar
             self.forward_ret_dict = targets_dict
 
         return batch_dict
