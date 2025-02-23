@@ -76,18 +76,18 @@ class VoxelRCNNPoseHead(VoxelRCNNHead):
         rcnn_loss, tb_dict = super().get_loss(tb_dict)
         # dist loss
         # mask
-        rcnn_cls_labels = self.forward_ret_dict['rcnn_cls_labels'].view(-1)
-        valid_mask = (rcnn_cls_labels > 0).long()
+        # rcnn_cls_labels = self.forward_ret_dict['rcnn_cls_labels'].view(-1)
+        # valid_mask = (rcnn_cls_labels > 0).long()
 
-        pred_mu = self.forward_ret_dict['pred_mu'][valid_mask]
-        pred_logvar = self.forward_ret_dict['pred_logvar'][valid_mask]
-        pred_dist = Independent(Normal(loc=pred_mu, scale=torch.exp(pred_logvar)+3e-22), 1)
-        normal_dist = Independent(Normal(loc=torch.zeros_like(pred_mu), scale=torch.ones_like(pred_logvar)), 1)
-        normal_latent_loss = torch.mean(self.kl_divergence(pred_dist, normal_dist))
-        rcnn_loss += normal_latent_loss
-        normal_latent_dict = {
-            'latent_loss': normal_latent_loss.item()
-        }
-        tb_dict.update(normal_latent_dict)
-        tb_dict['rcnn_loss'] = rcnn_loss.item()
+        # pred_mu = self.forward_ret_dict['pred_mu'][valid_mask]
+        # pred_logvar = self.forward_ret_dict['pred_logvar'][valid_mask]
+        # pred_dist = Independent(Normal(loc=pred_mu, scale=torch.exp(pred_logvar)+3e-22), 1)
+        # normal_dist = Independent(Normal(loc=torch.zeros_like(pred_mu), scale=torch.ones_like(pred_logvar)), 1)
+        # normal_latent_loss = torch.mean(self.kl_divergence(pred_dist, normal_dist))
+        # rcnn_loss += normal_latent_loss
+        # normal_latent_dict = {
+        #     'latent_loss': normal_latent_loss.item()
+        # }
+        # tb_dict.update(normal_latent_dict)
+        # tb_dict['rcnn_loss'] = rcnn_loss.item()
         return rcnn_loss, tb_dict
