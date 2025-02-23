@@ -2,9 +2,11 @@ import torch
 import torch.nn as nn
 from .voxelrcnn_head import VoxelRCNNHead
 from torch.distributions import Normal, Independent, kl
+from torch.autograd import Variable
 
 class VoxelRCNNPoseHead(VoxelRCNNHead):
     def __init__(self, backbone_channels, model_cfg, point_cloud_range, voxel_size, num_class=1, **kwargs):
+        
         super().__init__(backbone_channels, 
                          model_cfg, 
                          point_cloud_range, 
@@ -13,9 +15,15 @@ class VoxelRCNNPoseHead(VoxelRCNNHead):
                          **kwargs)
 
         shared_dim = self.model_cfg.SHARED_FC[-1]
-        latent_size = 8
+        latent_size = shared_dim
         self.fc1 = nn.Linear(shared_dim, latent_size)
         self.fc2 = nn.Linear(shared_dim, latent_size)
+
+    def reparametrize(self, mu, logvar):
+        std = logvar.mul(0.5).exp_()
+        eps = torch.cuda.FloatTensor(std.size()).normal_()
+        eps = Variable(eps)
+        return eps.mul(std).add_(mu)
 
     def forward(self, batch_dict):
         """
@@ -40,7 +48,8 @@ class VoxelRCNNPoseHead(VoxelRCNNHead):
         # Distribution
         mu = self.fc1(shared_features)
         logvar = self.fc2(shared_features)
-        rcnn_cls = self.cls_pred_layer(self.cls_fc_layers(shared_features))
+        z = self.reparametrize(mu, logvar)
+        rcnn_cls = self.cls_pred_layer(self.cls_fc_layers(z))
         rcnn_reg = self.reg_pred_layer(self.reg_fc_layers(shared_features))
 
         if not self.training:
