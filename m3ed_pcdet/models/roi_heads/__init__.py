@@ -10,7 +10,7 @@ from .voxelrcnn_head import VoxelRCNNHead
 from .voxelrcnn_head import ActiveVoxelRCNNHead
 from .voxelrcnn_head import VoxelRCNNHead_ABL
 from .pvrcnn_head_semi import PVRCNNHeadSemi
-
+from .voxelrcnn_head_pose import VoxelRCNNPoseHead
 __all__ = {
     'RoIHeadTemplate': RoIHeadTemplate,
     'PartA2FCHead': PartA2FCHead,
@@ -23,5 +23,6 @@ __all__ = {
     'VoxelRCNNHead': VoxelRCNNHead,
     'ActiveVoxelRCNNHead': ActiveVoxelRCNNHead,
     'VoxelRCNNHead_ABL': VoxelRCNNHead_ABL,
-    'PVRCNNHeadSemi':PVRCNNHeadSemi,
+    'PVRCNNHeadSemi': PVRCNNHeadSemi,
+    'VoxelRCNNPoseHead': VoxelRCNNPoseHead
 }

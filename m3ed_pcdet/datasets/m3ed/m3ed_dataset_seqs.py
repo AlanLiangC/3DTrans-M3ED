@@ -392,6 +392,13 @@ class OFFM3EDDatasetSeqs(DatasetTemplate):
         points = getattr(self, f'seq_{seq_idx}').get_lidar(frame_idx)
         return points
 
+    def get_multi_frame_lidar(self, idx, frame_nums=10):
+        single_frame_info = self.frame_info[idx]
+        seq_idx, frame_idx = [eval(fac) for fac in single_frame_info.split('_')]
+        points = getattr(self, f'seq_{seq_idx}').get_lidar(frame_idx)
+        points, _ = getattr(self, f'seq_{seq_idx}').get_sequence_data(points, frame_idx, max_sweeps=frame_nums)
+        return points
+
     def get_anno_info(self, idx):
         single_frame_info = self.frame_info[idx]
         seq_idx, frame_idx = [eval(fac) for fac in single_frame_info.split('_')]
