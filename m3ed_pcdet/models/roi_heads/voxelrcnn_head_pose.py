@@ -126,4 +126,5 @@ class VoxelRCNNPoseHead(VoxelRCNNHead):
         z_loss_cls, cls_tb_dict = self.get_z_box_cls_layer_loss(self.forward_ret_dict)
         rcnn_loss += z_loss_cls
         tb_dict.update(cls_tb_dict)
+        tb_dict['rcnn_loss'] = rcnn_loss.item()
         return rcnn_loss, tb_dict

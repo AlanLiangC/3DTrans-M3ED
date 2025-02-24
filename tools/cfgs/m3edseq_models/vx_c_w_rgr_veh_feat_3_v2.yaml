@@ -56,7 +56,7 @@ MODEL:
         NUM_UPSAMPLE_FILTERS: [256, 256]
 
     DENSE_HEAD:
-        NAME: CenterHead_Pose
+        NAME: CenterHead
         CLASS_AGNOSTIC: False
 
         CLASS_NAMES_EACH_HEAD: [
