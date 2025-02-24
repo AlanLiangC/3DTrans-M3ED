@@ -19,6 +19,7 @@ class M3ED_SEQ:
         self.dataset_cfg = dataset_cfg
         self.sequence_path = sequence_path
         self.platform = str(sequence_path).split('/')[-3]
+        self.terrian = str(sequence_path).split('/')[-2]
         self.sequence_name = str(sequence_path).split('/')[-1]
         self.class_names = class_names
         self.ori_class_names = ['Vehicle', 'Pedestrian', 'Pedestrian']
