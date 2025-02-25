@@ -7,7 +7,7 @@ DATA_CONFIG:
             processed/Car/Urban_Day/car_urban_day_city_hall,
             processed/Car/Urban_Day/penno_big_loop,
             processed/Car/Urban_Day/rittenhouse,
-            processed/Car/Urban_Day/ucity_small_loop,
+            # processed/Car/Urban_Day/ucity_small_loop,
             ],
         'test': [processed/Car/Urban_Day/car_urban_day_city_hall],
     }
