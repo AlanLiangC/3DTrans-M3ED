@@ -7,8 +7,10 @@ DATA_CONFIG:
         processed/Spot/Outdoor_Day/penno_short_loop,
         ],
         'test': [
-        processed/Spot/Outdoor_Night/penno_short_loop,
-        processed/Spot/Outdoor_Day/srt_green_loop
+        # processed/Spot/Outdoor_Night/penno_short_loop,
+        # processed/Spot/Outdoor_Day/srt_green_loop
+        processed/Spot/Outdoor_Day/penno_short_loop,
+
         ],
     }
     POINT_FEATURE_ENCODING: {
