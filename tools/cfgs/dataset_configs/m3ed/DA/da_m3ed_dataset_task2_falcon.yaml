@@ -13,7 +13,7 @@ INFO_SEQUENCES: {
       processed/Falcon/Outdoor_Day/penno_parking_1,
     ],
     'test': [
-      processed/Falcon/Outdoor_Day/penno_parking_2,
+      processed/Falcon/Outdoor_Day/penno_parking_1,
       ],
 }
 
