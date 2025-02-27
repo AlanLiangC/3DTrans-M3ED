@@ -216,9 +216,12 @@ SELF_TRAIN:
         USE_DATA: True
         USE_GRAD: True
         LOSS_WEIGHT: 1.0
+        SEP_LOSS_WEIGHTS: [0.0,1.0,0.0]
+
     TAR:
         USE_DATA: True
         LOSS_WEIGHT: 1.0
+        SEP_LOSS_WEIGHTS: [1.0,1.0,1.0]
 
     SCORE_THRESH: [0.5]
     NEG_THRESH: [0.2]
