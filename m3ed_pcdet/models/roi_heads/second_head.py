@@ -186,9 +186,10 @@ class SECONDHead(RoIHeadTemplate):
 
             self.forward_ret_dict = targets_dict
             if hasattr(self, 'roi_z'):
-                temp_cls_preds = rcnn_iou.view(batch_dict['batch_size'], -1, rcnn_iou.shape[-1])
+                # temp_cls_preds = rcnn_iou.view(batch_dict['batch_size'], -1, rcnn_iou.shape[-1])
+                scores_squeezed = self.forward_ret_dict['rcnn_cls_labels']
                 self.roi_z = self.roi_z.view(batch_dict['batch_size'], -1, self.roi_z.shape[-1])
-                scores_squeezed = temp_cls_preds.squeeze(-1)  # shape: [4, 128]
+                # scores_squeezed = temp_cls_preds.squeeze(-1)  # shape: [4, 128]
                 topk = torch.topk(scores_squeezed, k=20, dim=1)
                 indices = topk.indices
                 self.roi_z = torch.gather(self.roi_z, dim=1, index=indices.unsqueeze(-1).expand(-1, -1, self.roi_z.size(2)))
