@@ -194,15 +194,15 @@ class SECONDHead(RoIHeadTemplate):
                 self.roi_z = torch.gather(self.roi_z, dim=1, index=indices.unsqueeze(-1).expand(-1, -1, self.roi_z.size(2)))
                 self.roi_z = self.roi_z.view(-1, self.roi_z.shape[-1])
                 z_dim = int(self.roi_z.shape[-1]/2)
-                z_mu, z_sigma = self.roi_z[:,:z_dim], self.roi_z[:,z_dim:]
-                z_sigma = F.softplus(z_sigma) + 1e-6
-                z_dist = dist.Independent(dist.normal.Normal(z_mu,z_sigma),1)
-                self.roi_sample = z_dist.rsample()
+                self.z_mu, z_sigma = self.roi_z[:,:z_dim], self.roi_z[:,z_dim:]
+                self.z_sigma = F.softplus(z_sigma) + 1e-6
+                # z_dist = dist.Independent(dist.normal.Normal(z_mu,z_sigma),1)
+                # self.roi_sample = z_dist.rsample()
 
-                mix_coeff = dist.categorical.Categorical(self.roi_z.new_ones(self.roi_z.shape[0]))
-                mixture = dist.mixture_same_family.MixtureSameFamily(mix_coeff,z_dist)
-                self.roi_dist = z_dist
-                self.mixture_dist = mixture
+                # mix_coeff = dist.categorical.Categorical(self.roi_z.new_ones(self.roi_z.shape[0]))
+                # mixture = dist.mixture_same_family.MixtureSameFamily(mix_coeff,z_dist)
+                # self.roi_dist = z_dist
+                # self.mixture_dist = mixture
 
         return batch_dict
 

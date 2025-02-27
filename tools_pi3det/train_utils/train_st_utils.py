@@ -9,6 +9,22 @@ from m3ed_pcdet.config import cfg
 from m3ed_pcdet.models.model_utils.dsnorm import set_ds_source, set_ds_target
 from .train_utils import save_checkpoint, checkpoint_state
 
+def chamfer_loss(means1, sigmas1, means2, sigmas2):
+
+    N = means1.shape[0]
+    M = means2.shape[0]
+    mu1_exp = means1.unsqueeze(1)      # (N, 1, dim)
+    mu2_exp = means2.unsqueeze(0)      # (1, M, dim)
+    sigma1_exp = sigmas1.unsqueeze(1)    # (N, 1, dim)
+    sigma2_exp = sigmas2.unsqueeze(0)    # (1, M, dim)
+    
+    dists = (mu1_exp - mu2_exp).pow(2).sum(dim=-1) + (sigma1_exp - sigma2_exp).pow(2).sum(dim=-1)
+    
+    min1, _ = dists.min(dim=1)  # (N,)
+    min2, _ = dists.min(dim=0)  # (M,)
+    
+    loss = (min1.mean() + min2.mean()) / 2.0
+    return loss
 
 def train_one_epoch_st(model, optimizer, source_reader, target_loader, model_func, lr_scheduler,
                        accumulated_iter, optim_cfg, rank, tbar, total_it_each_epoch,
@@ -57,9 +73,9 @@ def train_one_epoch_st(model, optimizer, source_reader, target_loader, model_fun
             loss_meter.update(loss.item())
             disp_dict.update({'loss': "{:.3f}({:.3f})".format(loss_meter.val, loss_meter.avg)})
 
-            # dist
-            # source_roi_dist = model.roi_head.roi_dist
-            # source_roi_z_sample = model.roi_head.roi_sample
+            # # dist
+            # source_roi_z_mu = model.roi_head.z_mu
+            # source_roi_z_sigma = model.roi_head.z_sigma
             if not cfg.SELF_TRAIN.SRC.get('USE_GRAD', None):
                 optimizer.zero_grad()
 
@@ -77,6 +93,10 @@ def train_one_epoch_st(model, optimizer, source_reader, target_loader, model_fun
 
             # parameters for save pseudo label on the fly
             st_loss, st_tb_dict, st_disp_dict = model_func(model, target_batch)
+            # # dist
+            # target_roi_z_mu = model.roi_head.z_mu
+            # target_roi_z_sigma = model.roi_head.z_sigma
+
             st_loss.backward()
             st_loss_meter.update(st_loss.item())
 
@@ -99,12 +119,19 @@ def train_one_epoch_st(model, optimizer, source_reader, target_loader, model_fun
         optimizer.zero_grad()
         model.dist_stage_mode()
         _, _, _ = model_func(model, source_batch)
-        source_mixture_dist = model.roi_head.mixture_dist
+        # dist
+        source_roi_z_mu = model.roi_head.z_mu
+        source_roi_z_sigma = model.roi_head.z_sigma
+        # source_mixture_dist = model.roi_head.mixture_dist
         _, _, _ = model_func(model, target_batch)
-        # target_roi_dist = model.roi_head.roi_dist
-        target_mixture_dist = model.roi_head.mixture_dist
-        target_roi_z_sample = model.roi_head.roi_sample
-        kl_loss = (target_mixture_dist.log_prob(target_roi_z_sample)-source_mixture_dist.log_prob(target_roi_z_sample)).mean()
+        # dist
+        target_roi_z_mu = model.roi_head.z_mu
+        target_roi_z_sigma = model.roi_head.z_sigma
+        # # target_roi_dist = model.roi_head.roi_dist
+        # target_mixture_dist = model.roi_head.mixture_dist
+        # target_roi_z_sample = model.roi_head.roi_sample
+        # kl_loss = (target_mixture_dist.log_prob(target_roi_z_sample)-source_mixture_dist.log_prob(target_roi_z_sample)).mean()
+        kl_loss = 1e2 * chamfer_loss(source_roi_z_mu, source_roi_z_sigma, target_roi_z_mu, target_roi_z_sigma)
         kl_loss.backward()
         st_tb_dict.update({
             'st_kl_loss': kl_loss.item()

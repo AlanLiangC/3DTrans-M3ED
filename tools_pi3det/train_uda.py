@@ -134,7 +134,6 @@ def main():
     model.cuda()
 
     optimizer = build_optimizer(model, cfg.OPTIMIZATION)
-    z_dist_optimizer = build_optimizer(model, cfg.OPTIMIZATION)
 
     # load checkpoint if it is possible
     start_epoch = it = 0
