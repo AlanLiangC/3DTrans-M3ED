@@ -136,12 +136,12 @@ def train_one_epoch_st(model, optimizer, source_reader, target_loader, model_fun
         # target_roi_z_sample = model.roi_head.roi_sample
         # kl_loss = (target_mixture_dist.log_prob(target_roi_z_sample)-source_mixture_dist.log_prob(target_roi_z_sample)).mean()
         kl_loss = 1e7 * chamfer_loss(source_roi_z_mu, source_roi_z_sigma, target_roi_z_mu, target_roi_z_sigma)
-        kl_loss.backward()
         st_tb_dict.update({
             'st_kl_loss': kl_loss.item()
         })
         disp_dict.update({'kl_loss': "{:.3f}".format(kl_loss)})
-
+        if cur_it < (total_it_each_epoch - 5):
+            kl_loss.backward()
         optimizer.step()
 
         accumulated_iter += 1
