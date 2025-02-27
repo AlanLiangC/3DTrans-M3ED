@@ -140,7 +140,7 @@ def train_one_epoch_st(model, optimizer, source_reader, target_loader, model_fun
         st_tb_dict.update({
             'st_kl_loss': kl_loss.item()
         })
-        disp_dict.update({'kl_loss': "{:.3f}".format(kl_loss*1e5)})
+        disp_dict.update({'kl_loss': "{:.3f}".format(kl_loss)})
 
         optimizer.step()
 
