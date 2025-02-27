@@ -118,11 +118,15 @@ def train_one_epoch_st(model, optimizer, source_reader, target_loader, model_fun
         # dist loss
         optimizer.zero_grad()
         model.dist_stage_mode()
+        if cfg.SELF_TRAIN.get('DSNORM', None):
+            model.apply(set_ds_source)
         _, _, _ = model_func(model, source_batch)
         # dist
         source_roi_z_mu = model.roi_head.z_mu
         source_roi_z_sigma = model.roi_head.z_sigma
         # source_mixture_dist = model.roi_head.mixture_dist
+        if cfg.SELF_TRAIN.get('DSNORM', None):
+            model.apply(set_ds_target)
         _, _, _ = model_func(model, target_batch)
         # dist
         target_roi_z_mu = model.roi_head.z_mu
