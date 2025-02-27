@@ -63,7 +63,7 @@ class SECONDNetIoU(Detector3DTemplate):
     def get_training_loss(self, weights=None):
         disp_dict = {}
 
-        loss_rpn, tb_dict = self.dense_head.get_loss()
+        loss_rpn, tb_dict = self.dense_head.get_loss(weights)
         loss_rcnn, tb_dict = self.roi_head.get_loss(tb_dict)
 
         iou_weight = 1.0
