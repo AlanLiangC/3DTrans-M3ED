@@ -9,7 +9,7 @@ from .augmentor.database_sampler import ps_sampling
 from .processor.data_processor import DataProcessor
 from .processor.point_feature_encoder import PointFeatureEncoder
 from ..utils import common_utils, box_utils, self_training_utils
-from ..utils.st_train_toolbox import redb_train_utils
+from ..utils.st_train_toolbox import redb_train_utils, pi3d_self_training_utils
 from ..ops.roiaware_pool3d import roiaware_pool3d_utils
 from m3ed_pcdet.config import cfg
 
@@ -177,6 +177,23 @@ class DatasetTemplate(torch_data.Dataset):
 
     def fill_pseudo_labels_redb(self, input_dict):
         gt_boxes = redb_train_utils.load_ps_label(input_dict['frame_id'])
+        gt_scores = gt_boxes[:, 8]
+        gt_classes = gt_boxes[:, 7]
+        gt_boxes = gt_boxes[:, :7]
+
+        # only suitable for only one classes, generating gt_names for prepare data
+        gt_names = np.array([self.class_names[0] for n in gt_boxes])
+
+        input_dict['gt_boxes'] = gt_boxes
+        input_dict['gt_names'] = gt_names
+        input_dict['gt_classes'] = gt_classes
+        input_dict['gt_scores'] = gt_scores
+        input_dict['pos_ps_bbox'] = (gt_classes > 0).sum()
+        input_dict['ign_ps_bbox'] = gt_boxes.shape[0] - input_dict['pos_ps_bbox']
+        input_dict.pop('num_points_in_gt', None)
+
+    def fill_pseudo_labels_pi3det(self, input_dict):
+        gt_boxes = pi3d_self_training_utils.load_ps_label(input_dict['frame_id'])
         gt_scores = gt_boxes[:, 8]
         gt_classes = gt_boxes[:, 7]
         gt_boxes = gt_boxes[:, :7]

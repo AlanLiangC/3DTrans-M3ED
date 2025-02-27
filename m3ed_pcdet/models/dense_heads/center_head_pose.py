@@ -88,6 +88,7 @@ class CenterHead_Pose(CenterHead):
                                               point_cloud_range, 
                                               voxel_size,
                                               predict_boxes_when_training)
+        
         target_assigner_cfg = self.model_cfg.TARGET_ASSIGNER_CONFIG
         feature_map_size = self.grid_size[:2] // target_assigner_cfg.FEATURE_MAP_STRIDE
         self.bev_pos = self.create_2D_grid(feature_map_size[0], feature_map_size[1])

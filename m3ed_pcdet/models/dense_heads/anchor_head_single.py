@@ -4,6 +4,106 @@ import torch.nn as nn
 import torch.nn.functional as F
 from .anchor_head_template import AnchorHeadTemplate
 
+class PositionEncodingLearned(nn.Module):
+    """Absolute pos embedding, learned."""
+
+    def __init__(self, input_channel, num_pos_feats=288):
+        super().__init__()
+        self.position_embedding_head = nn.Sequential(
+            nn.Conv1d(input_channel, num_pos_feats, kernel_size=1),
+            nn.BatchNorm1d(num_pos_feats), nn.ReLU(inplace=True),
+            nn.Conv1d(num_pos_feats, num_pos_feats, kernel_size=1))
+
+    def forward(self, xyz):
+        xyz = xyz.transpose(1, 2).contiguous()
+        position_embedding = self.position_embedding_head(xyz)
+        return position_embedding
+
+class MLPBlock(nn.Module):
+    def __init__(self, in_features, out_features):
+        super(MLPBlock, self).__init__()
+        self.fc1 = nn.Linear(in_features, out_features)
+        self.fc2 = nn.Linear(out_features, out_features)
+        self.norm = nn.BatchNorm1d(out_features)
+        self.activation = nn.ReLU()
+
+    def forward(self, x):
+        x = self.activation(self.fc1(x))
+        x = self.norm(x)
+        x = self.activation(self.fc2(x))
+        return x
+
+class MLPUNet(nn.Module):
+    def __init__(self, input_dim, hidden_dims):
+        super(MLPUNet, self).__init__()
+        
+        self.encoders = nn.ModuleList()
+        self.decoders = nn.ModuleList()
+        
+        prev_dim = input_dim
+        for dim in hidden_dims:
+            self.encoders.append(MLPBlock(prev_dim, dim))
+            prev_dim = dim
+        
+        self.bottleneck = MLPBlock(hidden_dims[-1], hidden_dims[-1])
+        
+        for dim in reversed(hidden_dims[:-1]):
+            self.decoders.append(MLPBlock(prev_dim * 2, dim))
+            prev_dim = dim
+        
+        self.final_layer = nn.Linear(prev_dim * 2, input_dim)
+    
+    def forward(self, x):
+        skip_connections = []
+        
+        for encoder in self.encoders:
+            x = encoder(x)
+            skip_connections.append(x)
+        
+        x = self.bottleneck(x)
+        for decoder in self.decoders:
+            skip = skip_connections.pop()
+            x = torch.cat([x, skip], dim=1)
+            x = decoder(x)
+        
+        x = torch.cat([x, skip_connections.pop()], dim=1)
+        x = self.final_layer(x)
+        return x
+
+class AlignmentModule(nn.Module):
+    def __init__(self, model_cfg, grid_size, input_channels):
+        super(AlignmentModule, self).__init__()
+        self.model_cfg = model_cfg
+        self.adp_max_pool = nn.AdaptiveMaxPool2d((1,1))
+        target_assigner_cfg = self.model_cfg.ANCHOR_GENERATOR_CONFIG
+        feature_map_size = grid_size[:2] // target_assigner_cfg[0]['feature_map_stride']
+        self.bev_pos = self.create_2D_grid(feature_map_size[0], feature_map_size[1])
+        self.self_posembed = PositionEncodingLearned(input_channel=2, num_pos_feats=input_channels)
+        self.pose_est_model = MLPUNet(input_channels, hidden_dims=[128,64,32])
+
+    def create_2D_grid(self, x_size, y_size):
+        meshgrid = [[0, x_size - 1, x_size], [0, y_size - 1, y_size]]
+        # NOTE: modified
+        batch_x, batch_y = torch.meshgrid(
+            *[torch.linspace(it[0], it[1], it[2]) for it in meshgrid])
+        batch_x = batch_x + 0.5
+        batch_y = batch_y + 0.5
+        coord_base = torch.cat([batch_x[None], batch_y[None]], dim=0)[None]
+        coord_base = coord_base.view(1, 2, -1).permute(0, 2, 1)
+        return coord_base
+    
+    def forward(self, x):
+        B,C,H,W = x.shape
+        # scene geom feat
+        scene_gemo_feat = self.adp_max_pool(x)
+        scene_gemo_feat = self.pose_est_model(scene_gemo_feat.squeeze(-1).squeeze(-1))
+
+        pose_latent_feature = scene_gemo_feat.view(B,C,1,1).repeat(1,1,H,W)
+        bev_pos = self.bev_pos.repeat(B, 1, 1).to(x.device)
+        bev_position = self.self_posembed(bev_pos)
+        bev_position = bev_position.reshape(B,C,W,H).permute(0,1,3,2)
+        x = x + pose_latent_feature + bev_position
+        return x
 
 class AnchorHeadSingle(AnchorHeadTemplate):
     def __init__(self, model_cfg, input_channels, num_class, class_names, grid_size, point_cloud_range,
@@ -34,6 +134,10 @@ class AnchorHeadSingle(AnchorHeadTemplate):
             self.conv_dir_cls = None
         self.init_weights()
 
+        # ALIGNMENT MODULE
+        if self.model_cfg.get('ALIGNMENT', False):
+            self.alignment_model = AlignmentModule(self.model_cfg, grid_size, input_channels)
+
     def init_weights(self):
         pi = 0.01
         nn.init.constant_(self.conv_cls.bias, -np.log((1 - pi) / pi))
@@ -41,7 +145,8 @@ class AnchorHeadSingle(AnchorHeadTemplate):
 
     def forward(self, data_dict):
         spatial_features_2d = data_dict['spatial_features_2d']
-
+        if hasattr(self, 'alignment_model') and data_dict['batch_mode'] == 'target':
+            spatial_features_2d = self.alignment_model(spatial_features_2d)
         cls_preds = self.conv_cls(spatial_features_2d)
         box_preds = self.conv_box(spatial_features_2d)
 

@@ -1,8 +1,46 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+from torch.autograd import Variable
+import torch.distributions as dist
 from .roi_head_template import RoIHeadTemplate
 from ...utils import common_utils, loss_utils
 
+class MLP(nn.Module):
+    def __init__(self, n_inputs, probabilistic=True):
+        super(MLP, self).__init__()
+        self.input = nn.Linear(n_inputs, 128)
+        self.dropout = nn.Dropout(0.1)
+        self.hiddens = nn.ModuleList([
+            nn.Linear(128,128)
+            for _ in range(2)])
+        if probabilistic:
+            self.output = nn.Linear(128, 64*2)
+        else:
+            self.output = nn.Linear(128, 64)
+
+    def forward(self, x):
+        x = self.input(x)
+        x = self.dropout(x)
+        x = F.relu(x)
+        for hidden in self.hiddens:
+            x = hidden(x)
+            x = self.dropout(x)
+            x = F.relu(x)
+        x = self.output(x)
+        return x
+
+class AlignmentModule(nn.Module):
+    def __init__(self, model_cfg):
+        super(AlignmentModule, self).__init__()
+        self.model_cfg = model_cfg
+        shared_dim = self.model_cfg.SHARED_FC[-1]
+        self.featurizer = MLP(shared_dim)
+
+    def forward(self, roi_feature):
+        # Distribution
+        z_params = self.featurizer(roi_feature)
+        return z_params
 
 class SECONDHead(RoIHeadTemplate):
     def __init__(self, input_channels, model_cfg, num_class=1, **kwargs):
@@ -29,6 +67,11 @@ class SECONDHead(RoIHeadTemplate):
         self.iou_layers = self.make_fc_layers(
             input_channels=pre_channel, output_channels=1, fc_list=self.model_cfg.IOU_FC
         )
+
+        # ALIGNMENT MODULE
+        if self.model_cfg.get('ALIGNMENT', False):
+            self.alignment_model = AlignmentModule(self.model_cfg)
+
         self.init_weights(weight_init='xavier')
 
     def init_weights(self, weight_init='xavier'):
@@ -127,6 +170,11 @@ class SECONDHead(RoIHeadTemplate):
         batch_size_rcnn = pooled_features.shape[0]
 
         shared_features = self.shared_fc_layer(pooled_features.view(batch_size_rcnn, -1, 1))
+
+        # distribution
+        if hasattr(self, 'alignment_model'):
+            setattr(self, 'roi_z', self.alignment_model(shared_features.squeeze(dim=-1)))
+
         rcnn_iou = self.iou_layers(shared_features).transpose(1, 2).contiguous().squeeze(dim=1)  # (B*N, 1)
 
         if not self.training:
@@ -137,6 +185,24 @@ class SECONDHead(RoIHeadTemplate):
             targets_dict['rcnn_iou'] = rcnn_iou
 
             self.forward_ret_dict = targets_dict
+            if hasattr(self, 'roi_z'):
+                temp_cls_preds = rcnn_iou.view(batch_dict['batch_size'], -1, rcnn_iou.shape[-1])
+                self.roi_z = self.roi_z.view(batch_dict['batch_size'], -1, self.roi_z.shape[-1])
+                scores_squeezed = temp_cls_preds.squeeze(-1)  # shape: [4, 128]
+                topk = torch.topk(scores_squeezed, k=20, dim=1)
+                indices = topk.indices
+                self.roi_z = torch.gather(self.roi_z, dim=1, index=indices.unsqueeze(-1).expand(-1, -1, self.roi_z.size(2)))
+                self.roi_z = self.roi_z.view(-1, self.roi_z.shape[-1])
+                z_dim = int(self.roi_z.shape[-1]/2)
+                z_mu, z_sigma = self.roi_z[:,:z_dim], self.roi_z[:,z_dim:]
+                z_sigma = F.softplus(z_sigma) + 1e-6
+                z_dist = dist.Independent(dist.normal.Normal(z_mu,z_sigma),1)
+                self.roi_sample = z_dist.rsample()
+
+                mix_coeff = dist.categorical.Categorical(self.roi_z.new_ones(self.roi_z.shape[0]))
+                mixture = dist.mixture_same_family.MixtureSameFamily(mix_coeff,z_dist)
+                self.roi_dist = z_dist
+                self.mixture_dist = mixture
 
         return batch_dict
 

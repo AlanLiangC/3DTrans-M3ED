@@ -504,8 +504,9 @@ class KittiDataset(DatasetTemplate):
             input_dict["trans_lidar_to_cam"], input_dict["trans_cam_to_img"] = kitti_utils.calib_to_matricies(calib)
 
         # load saved pseudo label for unlabel data
+        ##########################################
         if self.dataset_cfg.get('USE_PSEUDO_LABEL', None) and self.training:
-            self.fill_pseudo_labels(input_dict)
+            self.fill_pseudo_labels_pi3det(input_dict)
             
         data_dict = self.prepare_data(data_dict=input_dict)
 
