@@ -54,7 +54,7 @@ def train_one_epoch_st(model, optimizer, source_reader, target_loader, model_fun
             tb_log.add_scalar('meta_data/learning_rate', cur_lr, accumulated_iter)
 
         model.train()
-        model.det_stage_mode()
+        model.det_source_stage_mode()
         optimizer.zero_grad()
 
         if cfg.SELF_TRAIN.SRC.USE_DATA:
@@ -87,7 +87,7 @@ def train_one_epoch_st(model, optimizer, source_reader, target_loader, model_fun
                 target_batch = next(dataloader_iter)
                 print('new iters')
             target_batch['batch_mode'] = 'target'
-
+            model.det_target_stage_mode()
             if cfg.SELF_TRAIN.get('DSNORM', None):
                 model.apply(set_ds_target)
 
@@ -135,7 +135,7 @@ def train_one_epoch_st(model, optimizer, source_reader, target_loader, model_fun
         # target_mixture_dist = model.roi_head.mixture_dist
         # target_roi_z_sample = model.roi_head.roi_sample
         # kl_loss = (target_mixture_dist.log_prob(target_roi_z_sample)-source_mixture_dist.log_prob(target_roi_z_sample)).mean()
-        kl_loss = 1e5 * chamfer_loss(source_roi_z_mu, source_roi_z_sigma, target_roi_z_mu, target_roi_z_sigma)
+        kl_loss = 1e7 * chamfer_loss(source_roi_z_mu, source_roi_z_sigma, target_roi_z_mu, target_roi_z_sigma)
         kl_loss.backward()
         st_tb_dict.update({
             'st_kl_loss': kl_loss.item()
