@@ -4,9 +4,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from .anchor_head_template import AnchorHeadTemplate
 
-class ResidualMultiScaleAttention(nn.Module):
+class AlignmentModule(nn.Module):
     def __init__(self, in_channels, out_channels, reduction=16):
-        super(ResidualMultiScaleAttention, self).__init__()
+        super(AlignmentModule, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.branch1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, padding=0)
@@ -102,40 +102,40 @@ class MLPUNet(nn.Module):
         x = self.final_layer(x)
         return x
 
-class AlignmentModule(nn.Module):
-    def __init__(self, model_cfg, grid_size, input_channels):
-        super(AlignmentModule, self).__init__()
-        self.model_cfg = model_cfg
-        self.adp_max_pool = nn.AdaptiveMaxPool2d((1,1))
-        target_assigner_cfg = self.model_cfg.ANCHOR_GENERATOR_CONFIG
-        feature_map_size = grid_size[:2] // target_assigner_cfg[0]['feature_map_stride']
-        self.bev_pos = self.create_2D_grid(feature_map_size[0], feature_map_size[1])
-        self.self_posembed = PositionEncodingLearned(input_channel=2, num_pos_feats=input_channels)
-        self.pose_est_model = MLPUNet(input_channels, hidden_dims=[128,64,32])
+# class AlignmentModule(nn.Module):
+#     def __init__(self, model_cfg, grid_size, input_channels):
+#         super(AlignmentModule, self).__init__()
+#         self.model_cfg = model_cfg
+#         self.adp_max_pool = nn.AdaptiveMaxPool2d((1,1))
+#         target_assigner_cfg = self.model_cfg.ANCHOR_GENERATOR_CONFIG
+#         feature_map_size = grid_size[:2] // target_assigner_cfg[0]['feature_map_stride']
+#         self.bev_pos = self.create_2D_grid(feature_map_size[0], feature_map_size[1])
+#         self.self_posembed = PositionEncodingLearned(input_channel=2, num_pos_feats=input_channels)
+#         self.pose_est_model = MLPUNet(input_channels, hidden_dims=[128,64,32])
 
-    def create_2D_grid(self, x_size, y_size):
-        meshgrid = [[0, x_size - 1, x_size], [0, y_size - 1, y_size]]
-        # NOTE: modified
-        batch_x, batch_y = torch.meshgrid(
-            *[torch.linspace(it[0], it[1], it[2]) for it in meshgrid])
-        batch_x = batch_x + 0.5
-        batch_y = batch_y + 0.5
-        coord_base = torch.cat([batch_x[None], batch_y[None]], dim=0)[None]
-        coord_base = coord_base.view(1, 2, -1).permute(0, 2, 1)
-        return coord_base
+#     def create_2D_grid(self, x_size, y_size):
+#         meshgrid = [[0, x_size - 1, x_size], [0, y_size - 1, y_size]]
+#         # NOTE: modified
+#         batch_x, batch_y = torch.meshgrid(
+#             *[torch.linspace(it[0], it[1], it[2]) for it in meshgrid])
+#         batch_x = batch_x + 0.5
+#         batch_y = batch_y + 0.5
+#         coord_base = torch.cat([batch_x[None], batch_y[None]], dim=0)[None]
+#         coord_base = coord_base.view(1, 2, -1).permute(0, 2, 1)
+#         return coord_base
     
-    def forward(self, x):
-        B,C,H,W = x.shape
-        # scene geom feat
-        scene_gemo_feat = self.adp_max_pool(x)
-        scene_gemo_feat = self.pose_est_model(scene_gemo_feat.squeeze(-1).squeeze(-1))
+#     def forward(self, x):
+#         B,C,H,W = x.shape
+#         # scene geom feat
+#         scene_gemo_feat = self.adp_max_pool(x)
+#         scene_gemo_feat = self.pose_est_model(scene_gemo_feat.squeeze(-1).squeeze(-1))
 
-        pose_latent_feature = scene_gemo_feat.view(B,C,1,1).repeat(1,1,H,W)
-        bev_pos = self.bev_pos.repeat(B, 1, 1).to(x.device)
-        bev_position = self.self_posembed(bev_pos)
-        bev_position = bev_position.reshape(B,C,W,H).permute(0,1,3,2)
-        x = x + pose_latent_feature + bev_position
-        return x
+#         pose_latent_feature = scene_gemo_feat.view(B,C,1,1).repeat(1,1,H,W)
+#         bev_pos = self.bev_pos.repeat(B, 1, 1).to(x.device)
+#         bev_position = self.self_posembed(bev_pos)
+#         bev_position = bev_position.reshape(B,C,W,H).permute(0,1,3,2)
+#         x = x + pose_latent_feature + bev_position
+#         return x
 
 class AnchorHeadSingle(AnchorHeadTemplate):
     def __init__(self, model_cfg, input_channels, num_class, class_names, grid_size, point_cloud_range,
@@ -168,7 +168,7 @@ class AnchorHeadSingle(AnchorHeadTemplate):
 
         # ALIGNMENT MODULE
         if self.model_cfg.get('ALIGNMENT', False):
-            self.alignment_model = AlignmentModule(self.model_cfg, grid_size, input_channels)
+            self.alignment_model = AlignmentModule(input_channels,input_channels,8)
 
     def init_weights(self):
         pi = 0.01
