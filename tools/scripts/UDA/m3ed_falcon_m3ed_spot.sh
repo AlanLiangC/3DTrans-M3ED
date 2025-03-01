@@ -22,11 +22,11 @@ done
 echo $PORT
 
 # pv-a
-srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
-    --batch_size 8 \
-    --cfg_file cfgs/DA/m3ed_m3ed/falcon_spot/pvrcnn_st3d_wo_ros_veh_feat_3.yaml \
-    --pretrained_model ../output/m3edseq_models/pvrcnn_falcon_veh_feat_3/default/ckpt/checkpoint_epoch_14.pth \
-    --eval_fov_only
+# srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
+#     --batch_size 8 \
+#     --cfg_file cfgs/DA/m3ed_m3ed/falcon_spot/pvrcnn_st3d_wo_ros_veh_feat_3.yaml \
+#     --pretrained_model ../output/m3edseq_models/pvrcnn_falcon_veh_feat_3/default/ckpt/checkpoint_epoch_14.pth \
+#     --eval_fov_only
 
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
@@ -36,18 +36,18 @@ srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launch
     --eval_fov_only
 
 
-srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
-    --batch_size 8 \
-    --cfg_file cfgs/DA/m3ed_m3ed/falcon_spot/pvrcnn_ms3d_veh_feat_3.yaml \
-    --pretrained_model ../output/m3edseq_models/pvrcnn_falcon_veh_feat_3/default/ckpt/checkpoint_epoch_14.pth \
-    --eval_fov_only
+# srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
+#     --batch_size 8 \
+#     --cfg_file cfgs/DA/m3ed_m3ed/falcon_spot/pvrcnn_ms3d_veh_feat_3.yaml \
+#     --pretrained_model ../output/m3edseq_models/pvrcnn_falcon_veh_feat_3/default/ckpt/checkpoint_epoch_14.pth \
+#     --eval_fov_only
 
 # vx-c
-srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
-    --batch_size 8 \
-    --cfg_file cfgs/DA/m3ed_m3ed/falcon_spot/vx_c_st3d_wo_ros_veh_feat_3.yaml \
-    --pretrained_model ../output/m3edseq_models/vx_c_falcon_veh_feat_3/default/ckpt/checkpoint_epoch_40.pth \
-    --eval_fov_only
+# srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
+#     --batch_size 8 \
+#     --cfg_file cfgs/DA/m3ed_m3ed/falcon_spot/vx_c_st3d_wo_ros_veh_feat_3.yaml \
+#     --pretrained_model ../output/m3edseq_models/vx_c_falcon_veh_feat_3/default/ckpt/checkpoint_epoch_40.pth \
+#     --eval_fov_only
 
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
@@ -57,8 +57,50 @@ srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launch
     --eval_fov_only
 
 
+# srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
+#     --batch_size 8 \
+#     --cfg_file cfgs/DA/m3ed_m3ed/falcon_spot/vx_c_ms3d_veh_feat_3.yaml \
+#     --pretrained_model ../output/m3edseq_models/vx_c_falcon_veh_feat_3/default/ckpt/checkpoint_epoch_40.pth \
+#     --eval_fov_only
+
+# pv-a
 srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 8 \
-    --cfg_file cfgs/DA/m3ed_m3ed/falcon_spot/vx_c_ms3d_veh_feat_3.yaml \
-    --pretrained_model ../output/m3edseq_models/vx_c_falcon_veh_feat_3/default/ckpt/checkpoint_epoch_40.pth \
+    --cfg_file cfgs/DA/m3ed_m3ed/spot_falcon/pvrcnn_st3d_wo_ros_veh_feat_3.yaml \
+    --pretrained_model ../output/m3edseq_models/pvrcnn_spot_veh_feat_3/default/ckpt/checkpoint_epoch_14.pth \
+    --eval_fov_only
+
+
+srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
+    --batch_size 8 \
+    --cfg_file cfgs/DA/m3ed_m3ed/spot_falcon/pvrcnn_st3d_plus_wo_ros_veh_feat_3.yaml \
+    --pretrained_model ../output/m3edseq_models/pvrcnn_spot_veh_feat_3/default/ckpt/checkpoint_epoch_14.pth \
+    --eval_fov_only
+
+
+srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
+    --batch_size 8 \
+    --cfg_file cfgs/DA/m3ed_m3ed/spot_falcon/pvrcnn_ms3d_veh_feat_3.yaml \
+    --pretrained_model ../output/m3edseq_models/pvrcnn_spot_veh_feat_3/default/ckpt/checkpoint_epoch_14.pth \
+    --eval_fov_only
+
+# vx-c
+srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
+    --batch_size 8 \
+    --cfg_file cfgs/DA/m3ed_m3ed/spot_falcon/vx_c_st3d_wo_ros_veh_feat_3.yaml \
+    --pretrained_model ../output/m3edseq_models/vx_c_spot_veh_feat_3/default/ckpt/checkpoint_epoch_40.pth \
+    --eval_fov_only
+
+
+srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
+    --batch_size 8 \
+    --cfg_file cfgs/DA/m3ed_m3ed/spot_falcon/vx_c_st3d_plus_wo_ros_veh_feat_3.yaml \
+    --pretrained_model ../output/m3edseq_models/vx_c_spot_veh_feat_3/default/ckpt/checkpoint_epoch_40.pth \
+    --eval_fov_only
+
+
+srun python -m torch.distributed.launch --nproc_per_node=2 train_uda.py --launcher pytorch --tcp_port ${PORT} \
+    --batch_size 8 \
+    --cfg_file cfgs/DA/m3ed_m3ed/spot_falcon/vx_c_ms3d_veh_feat_3.yaml \
+    --pretrained_model ../output/m3edseq_models/vx_c_spot_veh_feat_3/default/ckpt/checkpoint_epoch_40.pth \
     --eval_fov_only

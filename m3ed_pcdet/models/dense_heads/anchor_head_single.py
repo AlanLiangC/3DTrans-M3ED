@@ -190,8 +190,9 @@ class AnchorHeadSingle(AnchorHeadTemplate):
 
     def forward(self, data_dict):
         spatial_features_2d = data_dict['spatial_features_2d']
-        if hasattr(self, 'alignment_model') and data_dict['batch_mode'] == 'target':
-            spatial_features_2d = self.alignment_model(spatial_features_2d)
+        if hasattr(self, 'alignment_model'):
+            if data_dict['batch_mode'] == 'target':
+                spatial_features_2d = self.alignment_model(spatial_features_2d)
         cls_preds = self.conv_cls(spatial_features_2d)
         box_preds = self.conv_box(spatial_features_2d)
 
