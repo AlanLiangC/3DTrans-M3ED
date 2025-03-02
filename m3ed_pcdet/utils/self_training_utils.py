@@ -287,4 +287,13 @@ def load_ps_label(frame_id):
     else:
         # raise ValueError('Cannot find pseudo label for frame: %s' % frame_id)
         gt_box = np.empty([0,9])
+        gt_infos = {
+            'gt_boxes': gt_box,
+            'cls_scores': np.empty([1]),
+            'iou_scores': np.empty([1]),
+            'memory_counter': np.zeros(gt_box.shape[0])
+        }
+        PSEUDO_LABELS.update({
+            frame_id: gt_infos
+        })
     return gt_box
