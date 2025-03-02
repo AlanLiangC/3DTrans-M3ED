@@ -7,8 +7,8 @@ DATA_CONFIG:
         processed/Falcon/Outdoor_Day/penno_parking_1,
         ],
         'test': [
-        # processed/Falcon/Outdoor_Day/penno_parking_2,
-        processed/Falcon/Outdoor_Day/penno_parking_1,
+        processed/Falcon/Outdoor_Day/penno_parking_2,
+        # processed/Falcon/Outdoor_Day/penno_parking_1,
         ],
     }
     POINT_FEATURE_ENCODING: {

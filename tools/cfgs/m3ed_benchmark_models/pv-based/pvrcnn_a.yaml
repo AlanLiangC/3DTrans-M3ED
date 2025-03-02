@@ -4,21 +4,11 @@ DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/m3ed/OD/m3ed_dataset_seq.yaml
     INFO_SEQUENCES: {
         'train': [
-        processed/Spot/Outdoor_Day/penno_short_loop,
-        ],
-        'test': [
-        processed/Spot/Outdoor_Night/penno_short_loop,
-        processed/Spot/Outdoor_Day/srt_green_loop
-        # processed/Spot/Outdoor_Day/penno_short_loop,
-
-        ],
+            processed/Car/Urban_Day/penno_big_loop,
+            ],
+        'test': [processed/Car/Urban_Night/car_urban_day_city_hall],
     }
-    POINT_FEATURE_ENCODING: {
-        encoding_type: absolute_coordinates_encoding,
-        used_feature_list: ['x', 'y', 'z'],
-        src_feature_list: ['x', 'y', 'z', 'intensity', 'timestamp'],
-    }
-    SHIFT_COOR: [0.0, 0.0, 0.0]
+    SHIFT_COOR: [0.0, 0.0, 1.5]
 
 
 MODEL:
