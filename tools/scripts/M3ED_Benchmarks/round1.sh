@@ -23,20 +23,16 @@ echo $PORT
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 8 \
-    --cfg_file cfgs/m3ed_benchmark_models/grid-based/centerpoint_vehi.yaml \
-    --eval_fov_only
+    --cfg_file cfgs/m3ed_benchmark_models/grid-based/centerpoint_vehi.yaml
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 8 \
-    --cfg_file cfgs/m3ed_benchmark_models/grid-based/pillarnet.yaml \
-    --eval_fov_only
+    --cfg_file cfgs/m3ed_benchmark_models/grid-based/pillarnet.yaml
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 8 \
-    --cfg_file cfgs/m3ed_benchmark_models/grid-based/pointpillar.yaml \
-    --eval_fov_only
+    --cfg_file cfgs/m3ed_benchmark_models/grid-based/pointpillar.yaml
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 8 \
-    --cfg_file cfgs/m3ed_benchmark_models/grid-based/second_iou.yaml \
-    --eval_fov_only
+    --cfg_file cfgs/m3ed_benchmark_models/grid-based/second_iou.yaml

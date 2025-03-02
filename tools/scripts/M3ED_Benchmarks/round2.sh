@@ -23,15 +23,12 @@ echo $PORT
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 8 \
-    --cfg_file cfgs/m3ed_benchmark_models/point-based/IA-SSD_vehi.yaml \
-    --eval_fov_only
+    --cfg_file cfgs/m3ed_benchmark_models/point-based/IA-SSD_vehi.yaml
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 8 \
-    --cfg_file cfgs/m3ed_benchmark_models/pv-based/pvrcnn_a.yaml \
-    --eval_fov_only
+    --cfg_file cfgs/m3ed_benchmark_models/pv-based/pvrcnn_a.yaml
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 8 \
-    --cfg_file cfgs/m3ed_benchmark_models/pv-based/vx_c.yaml \
-    --eval_fov_only
+    --cfg_file cfgs/m3ed_benchmark_models/pv-based/vx_c.yaml
