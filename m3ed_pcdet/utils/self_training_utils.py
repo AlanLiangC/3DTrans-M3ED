@@ -138,7 +138,18 @@ def optim_pseudo_label_w_traj(val_loader, rank, ps_label_dir, cur_epoch):
     ps_dict = {}
     for info in val_loader.dataset.infos:
         frame_id = info['frame_id']
-        ps_dict[frame_id] = PSEUDO_LABELS[frame_id]
+        try:
+            ps_dict[frame_id] = PSEUDO_LABELS[frame_id]
+        except:
+            gt_box = np.empty([0,9])
+            gt_infos = {
+                'gt_boxes': gt_box,
+                'cls_scores': np.empty([1]),
+                'iou_scores': np.empty([1]),
+                'memory_counter': np.zeros(gt_box.shape[0])
+            }
+            ps_dict[frame_id] = gt_infos
+            
     static_veh_trk_cfg = tracker_utils.prepare_track_cfg(traj_configs['TRACKING']['VEH_STATIC'])
     all_veh_trk_cfg = tracker_utils.prepare_track_cfg(traj_configs['TRACKING']['VEH_ALL'])
     static_veh_tracks_world = tracker_utils.get_tracklets(val_loader.dataset, ps_dict, static_veh_trk_cfg, cls_id=1)

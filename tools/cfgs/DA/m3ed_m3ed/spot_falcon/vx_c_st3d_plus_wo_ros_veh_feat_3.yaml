@@ -232,7 +232,7 @@ SELF_TRAIN:
         SCALE: 1.05
 
     MEMORY_ENSEMBLE:
-        ENABLED: True
+        ENABLED: False
         NAME: consistency_ensemble
         IOU_THRESH: 0.1
 
