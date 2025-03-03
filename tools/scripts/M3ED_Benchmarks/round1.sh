@@ -21,9 +21,9 @@ do
 done
 echo $PORT
 
-srun python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher pytorch --tcp_port ${PORT} \
-    --batch_size 8 \
-    --cfg_file cfgs/m3ed_benchmark_models/grid-based/centerpoint_vehi.yaml
+# srun python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher pytorch --tcp_port ${PORT} \
+#     --batch_size 8 \
+#     --cfg_file cfgs/m3ed_benchmark_models/grid-based/centerpoint_vehi.yaml
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 8 \
@@ -35,4 +35,8 @@ srun python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher p
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 8 \
-    --cfg_file cfgs/m3ed_benchmark_models/grid-based/second_iou.yaml
+    --cfg_file cfgs/m3ed_benchmark_models/point-based/IA-SSD_vehi.yaml
+
+# srun python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher pytorch --tcp_port ${PORT} \
+#     --batch_size 8 \
+#     --cfg_file cfgs/m3ed_benchmark_models/grid-based/second_iou.yaml
