@@ -462,8 +462,11 @@ class IASSD_Head(PointHeadTemplate):
             centers_pred = centers_pred[simple_pos_mask][:, 1:4]
             simple_center_origin_loss_box = F.smooth_l1_loss(centers_pred, center_box_labels)
             center_origin_loss_box.append(simple_center_origin_loss_box.unsqueeze(-1))
-        center_origin_loss_box = torch.cat(center_origin_loss_box, dim=-1).mean()
-        center_origin_loss_box = center_origin_loss_box * self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS.get('vote_weight')
+        if len(center_origin_loss_box) == 0:
+            center_origin_loss_box = pos_mask.new_zeros([1])
+        else:
+            center_origin_loss_box = torch.cat(center_origin_loss_box, dim=-1).mean()
+            center_origin_loss_box = center_origin_loss_box * self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS.get('vote_weight')
         if tb_dict is None:
             tb_dict = {}
         tb_dict.update({'center_origin_loss_reg': center_origin_loss_box.item()})

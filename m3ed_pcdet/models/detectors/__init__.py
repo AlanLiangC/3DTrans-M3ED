@@ -4,6 +4,7 @@ from .detector3d_template_multi_db import Detector3DTemplate_M_DB
 from .PartA2_net import PartA2Net
 from .point_rcnn import PointRCNN
 from .pointpillar import PointPillar
+from .pillarnet import PillarNet
 from .pv_rcnn import PVRCNN
 from .pv_rcnn import PVRCNN_M_DB
 from .pv_rcnn import PVRCNN_M_DB_3
@@ -47,6 +48,7 @@ __all__ = {
     'PVRCNN_TQS': PVRCNN_TQS,
     'PVRCNN_CLUE': PVRCNN_CLUE,
     'PointPillar': PointPillar,
+    'PillarNet': PillarNet,
     'PointRCNN': PointRCNN,
     'SECONDNetIoU': SECONDNetIoU,
     'ActiveSECONDNetIoU': ActiveSECONDNetIoU,
