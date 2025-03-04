@@ -136,8 +136,8 @@ class DynamicPillarVFE(VFETemplate):
                                    torch.zeros(unq_coords.shape[0]).to(unq_coords.device).int()
                                    ), dim=1)
         voxel_coords = voxel_coords[:, [0, 3, 2, 1]]
-
-        batch_dict['pillar_features'] = features
+        
+        batch_dict['voxel_features'] = batch_dict['pillar_features'] = features
         batch_dict['voxel_coords'] = voxel_coords
         return batch_dict
 

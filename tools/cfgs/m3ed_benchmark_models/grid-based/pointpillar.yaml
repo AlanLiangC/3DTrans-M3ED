@@ -9,6 +9,8 @@ DATA_CONFIG:
         'test': [processed/Car/Urban_Day/car_urban_day_city_hall],
     }
     SHIFT_COOR: [0.0, 0.0, 1.5]
+    POINT_CLOUD_RANGE: [0, -39.68, -4, 69.12, 39.68, 2]
+
     DATA_PROCESSOR:
         - NAME: mask_points_and_boxes_outside_range
           REMOVE_OUTSIDE_BOXES: True
@@ -20,7 +22,7 @@ DATA_CONFIG:
           }
 
         - NAME: transform_points_to_voxels
-          VOXEL_SIZE: [0.1, 0.1, 6]
+          VOXEL_SIZE: [0.16, 0.16, 6]
           MAX_POINTS_PER_VOXEL: 32
           MAX_NUMBER_OF_VOXELS: {
             'train': 16000,
@@ -65,7 +67,7 @@ MODEL:
                 'anchor_rotations': [0, 1.57],
                 'anchor_bottom_heights': [0],
                 'align_center': False,
-                'feature_map_stride': 8,
+                'feature_map_stride': 2,
                 'matched_threshold': 0.55,
                 'unmatched_threshold': 0.4
             },
