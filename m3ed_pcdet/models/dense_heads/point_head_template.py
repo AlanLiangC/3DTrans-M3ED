@@ -159,6 +159,8 @@ class PointHeadTemplate(nn.Module):
         pos_normalizer = max(1, (pos_mask > 0).sum().item())
         point_part_labels = self.forward_ret_dict['point_part_labels']
         point_part_preds = self.forward_ret_dict['point_part_preds']
+        # point_part_labels = torch.where(point_part_labels < 0, 0, point_part_labels)
+        point_part_labels = torch.clamp(point_part_labels,0,1)
         point_loss_part = F.binary_cross_entropy(torch.sigmoid(point_part_preds), point_part_labels, reduction='none')
         point_loss_part = (point_loss_part.sum(dim=-1) * pos_mask.float()).sum() / (3 * pos_normalizer)
 

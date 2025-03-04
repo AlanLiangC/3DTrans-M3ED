@@ -218,6 +218,7 @@ class RoIHeadTemplate(nn.Module):
         loss_cfgs = self.model_cfg.LOSS_CONFIG
         rcnn_cls = forward_ret_dict['rcnn_cls']
         rcnn_cls_labels = forward_ret_dict['rcnn_cls_labels'].view(-1)
+        rcnn_cls_labels = torch.where(rcnn_cls_labels < 0, 0, rcnn_cls_labels)
         if loss_cfgs.CLS_LOSS == 'BinaryCrossEntropy':
             rcnn_cls_flat = rcnn_cls.view(-1)
             batch_loss_cls = F.binary_cross_entropy(torch.sigmoid(rcnn_cls_flat), rcnn_cls_labels.float(), reduction='none')
@@ -237,19 +238,14 @@ class RoIHeadTemplate(nn.Module):
     def get_loss(self, tb_dict=None):
         tb_dict = {} if tb_dict is None else tb_dict
         rcnn_loss = 0
-        try:
-            rcnn_loss_cls, cls_tb_dict = self.get_box_cls_layer_loss(self.forward_ret_dict)
-            rcnn_loss += rcnn_loss_cls
-            tb_dict.update(cls_tb_dict)
-        except:
-            pass
+        rcnn_loss_cls, cls_tb_dict = self.get_box_cls_layer_loss(self.forward_ret_dict)
+        rcnn_loss += rcnn_loss_cls
+        tb_dict.update(cls_tb_dict)
 
-        try:
-            rcnn_loss_reg, reg_tb_dict = self.get_box_reg_layer_loss(self.forward_ret_dict)
-            rcnn_loss += rcnn_loss_reg
-            tb_dict.update(reg_tb_dict)
-        except:
-            pass
+        rcnn_loss_reg, reg_tb_dict = self.get_box_reg_layer_loss(self.forward_ret_dict)
+        rcnn_loss += rcnn_loss_reg
+        tb_dict.update(reg_tb_dict)
+
         tb_dict['rcnn_loss'] = rcnn_loss.item()
         return rcnn_loss, tb_dict
 

@@ -11,8 +11,10 @@ class PartA2Net(Detector3DTemplate):
             batch_dict = cur_module(batch_dict)
 
         if self.training:
-            loss, tb_dict, disp_dict = self.get_training_loss()
-
+            try:
+                loss, tb_dict, disp_dict = self.get_training_loss()
+            except:
+                loss, tb_dict, disp_dict = self.get_training_loss()
             ret_dict = {
                 'loss': loss
             }

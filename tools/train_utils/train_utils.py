@@ -27,7 +27,6 @@ def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, ac
             dataloader_iter = iter(train_loader)
             batch = next(dataloader_iter)
             print('new iters')
-        
         data_timer = time.time()
         cur_data_time = data_timer - end
 
