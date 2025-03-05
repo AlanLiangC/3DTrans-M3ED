@@ -6,9 +6,9 @@ DATA_CONFIG:
         'train': [
             processed/Car/Urban_Day/penno_big_loop,
             ],
-        'test': [processed/Car/Urban_Day/car_urban_day_city_hall],
+        'test': [processed/Spot/Outdoor_Day/penno_short_loop],
     }
-    SHIFT_COOR: [0.0, 0.0, 1.5]
+    SHIFT_COOR: [0.0, 0.0, 0.3]
 
 
 MODEL:

@@ -6,11 +6,11 @@ DATA_CONFIG:
         'train': [
             processed/Car/Urban_Day/penno_big_loop,
             ],
-        'test': [processed/Car/Urban_Day/car_urban_day_city_hall],
+        'test': [processed/Spot/Outdoor_Day/penno_short_loop],
     }
+    SHIFT_COOR: [0.0, 0.0, 0.3]
     POINT_CLOUD_RANGE: [-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]
 
-    SHIFT_COOR: [0.0, 0.0, 1.5]
     DATA_PROCESSOR:
         - NAME: mask_points_and_boxes_outside_range
           REMOVE_OUTSIDE_BOXES: True

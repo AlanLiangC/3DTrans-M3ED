@@ -6,6 +6,8 @@ from .spconv_unet import UNetV2
 from .IASSD_backbone import IASSD_Backbone
 from .hednet import HEDNet, HEDNet2D
 from .hednet import SparseHEDNet, SparseHEDNet2D
+from .SSD_backbone import SSDBackbone
+
 __all__ = {
     'VoxelBackBone8x': VoxelBackBone8x,
     'UNetV2': UNetV2,
@@ -24,4 +26,5 @@ __all__ = {
     'HEDNet2D': HEDNet2D,
     'SparseHEDNet': SparseHEDNet,
     'SparseHEDNet2D': SparseHEDNet2D,
+    'SSDBackbone': SSDBackbone
 }

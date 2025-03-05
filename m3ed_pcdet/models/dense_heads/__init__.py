@@ -16,6 +16,7 @@ from .point_head_semi import PointHeadSemi
 from .anchor_head_pretrain import AnchorHeadSinglePretrain
 from .transfusion_head import TransFusionHead
 from .sparse_transfusion_head import SparseTransFusionHead
+from .point_head_box_3DSSD import PointHeadBox3DSSD
 
 __all__ = {
     'AnchorHeadTemplate': AnchorHeadTemplate,
@@ -36,5 +37,6 @@ __all__ = {
     'AnchorHeadSinglePretrain': AnchorHeadSinglePretrain,
     'CenterHead_Pose': CenterHead_Pose,
     'TransFusionHead': TransFusionHead,
-    'SparseTransFusionHead': SparseTransFusionHead
+    'SparseTransFusionHead': SparseTransFusionHead,
+    'PointHeadBox3DSSD': PointHeadBox3DSSD
 }

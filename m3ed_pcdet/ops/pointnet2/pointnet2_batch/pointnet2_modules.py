@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from . import pointnet2_utils
-
+from m3ed_pcdet.models.model_utils.ssd_utils import calc_square_dist
 
 class _PointnetSAModuleBase(nn.Module):
 
@@ -509,6 +509,145 @@ class PointnetFPModule(nn.Module):
         new_features = self.mlp(new_features)
 
         return new_features.squeeze(-1)
+
+class PointnetSAModuleMSG_SSD(_PointnetSAModuleBase):
+    """Pointnet set abstraction layer with multiscale grouping"""
+
+    def __init__(self, *, npoint: int, radii: List[float], nsamples: List[int], mlps: List[List[int]], bn: bool = True,
+                 use_xyz: bool = True, pool_method='max_pool', out_channle=-1, fps_type='D-FPS', fps_range=-1,
+                 dilated_group=False):
+        """
+        :param npoint: int
+        :param radii: list of float, list of radii to group with
+        :param nsamples: list of int, number of samples in each ball query
+        :param mlps: list of list of int, spec of the pointnet before the global pooling for each scale
+        :param bn: whether to use batchnorm
+        :param use_xyz:
+        :param pool_method: max_pool / avg_pool
+        """
+        super().__init__()
+        self.fps_types = fps_type
+        self.fps_ranges = fps_range
+        self.dilated_group = dilated_group
+
+        assert len(radii) == len(nsamples) == len(mlps)
+
+        self.npoint = npoint
+        self.groupers = nn.ModuleList()
+        self.mlps = nn.ModuleList()
+        for i in range(len(radii)):
+            radius = radii[i]
+            nsample = nsamples[i]
+            self.groupers.append(
+                pointnet2_utils.QueryAndGroup(radius, nsample, use_xyz=use_xyz)
+                if npoint is not None else pointnet2_utils.GroupAll(use_xyz)
+            )
+            mlp_spec = mlps[i]
+            if use_xyz:
+                mlp_spec[0] += 3
+
+            shared_mlps = []
+            for k in range(len(mlp_spec) - 1):
+                shared_mlps.extend([
+                    nn.Conv2d(mlp_spec[k], mlp_spec[k + 1], kernel_size=1, bias=False),
+                    nn.BatchNorm2d(mlp_spec[k + 1]),
+                    nn.ReLU()
+                ])
+            self.mlps.append(nn.Sequential(*shared_mlps))
+
+        self.pool_method = pool_method
+
+        if out_channle != -1 and len(self.mlps) > 0:
+            in_channel = 0
+            for mlp_tmp in mlps:
+                in_channel += mlp_tmp[-1]
+            shared_mlps = []
+            shared_mlps.extend([
+                nn.Conv1d(in_channel, out_channle, kernel_size=1, bias=False),
+                nn.BatchNorm1d(out_channle),
+                nn.ReLU()
+            ])
+            self.out_aggregation = nn.Sequential(*shared_mlps)
+
+    def forward(self, xyz: torch.Tensor, features: torch.Tensor = None, new_xyz=None, ctr_xyz=None) -> (torch.Tensor, torch.Tensor):
+        """
+        :param xyz: (B, N, 3) tensor of the xyz coordinates of the features
+        :param features: (B, C, N) tensor of the descriptors of the the features
+        :param new_xyz:
+        :return:
+            new_xyz: (B, npoint, 3) tensor of the new features' xyz
+            new_features: (B, npoint, \sum_k(mlps[k][-1])) tensor of the new_features descriptors
+        """
+        new_features_list = []
+
+        xyz_flipped = xyz.transpose(1, 2).contiguous()
+
+        if ctr_xyz is None:
+            last_fps_end_index = 0
+            fps_idxes = []
+            for i in range(len(self.fps_types)):
+                fps_type = self.fps_types[i]
+                fps_range = self.fps_ranges[i]
+                npoint = self.npoint[i]
+                if npoint == 0:
+                    continue
+                if fps_range == -1:
+                    xyz_tmp = xyz[:, last_fps_end_index:, :]
+                    feature_tmp = features.transpose(1, 2)[:, last_fps_end_index:, :]
+                else:
+                    xyz_tmp = xyz[:, last_fps_end_index:fps_range, :]
+                    feature_tmp = features.transpose(1, 2)[:, last_fps_end_index:fps_range, :]
+                    last_fps_end_index += fps_range
+                if fps_type == 'D-FPS':
+                    fps_idx = pointnet2_utils.furthest_point_sample(xyz_tmp.contiguous(), npoint)
+                elif fps_type == 'F-FPS':
+                    # features_SSD = xyz_tmp
+                    features_SSD = torch.cat([xyz_tmp, feature_tmp], dim=-1)
+                    features_for_fps_distance = calc_square_dist(features_SSD, features_SSD)
+                    features_for_fps_distance = features_for_fps_distance.contiguous()
+                    fps_idx = pointnet2_utils.furthest_point_sample_with_dist(features_for_fps_distance, npoint)
+                elif fps_type == 'FS':
+                    # features_SSD = xyz_tmp
+                    features_SSD = torch.cat([xyz_tmp, feature_tmp], dim=-1)
+                    features_for_fps_distance = calc_square_dist(features_SSD, features_SSD)
+                    features_for_fps_distance = features_for_fps_distance.contiguous()
+                    fps_idx_1 = pointnet2_utils.furthest_point_sample_with_dist(features_for_fps_distance, npoint)
+                    fps_idx_2 = pointnet2_utils.furthest_point_sample(xyz_tmp, npoint)
+                    fps_idx = torch.cat([fps_idx_1, fps_idx_2], dim=-1)  # [bs, npoint * 2]
+                fps_idxes.append(fps_idx)
+            fps_idxes = torch.cat(fps_idxes, dim=-1)
+            new_xyz = pointnet2_utils.gather_operation(
+                xyz_flipped, fps_idxes
+            ).transpose(1, 2).contiguous() if self.npoint is not None else None
+        else:
+            new_xyz = ctr_xyz
+
+        if len(self.groupers) > 0:
+            for i in range(len(self.groupers)):
+                new_features = self.groupers[i](xyz, new_xyz, features.contiguous())  # (B, C, npoint, nsample)
+
+                new_features = self.mlps[i](new_features)  # (B, mlp[-1], npoint, nsample)
+                if self.pool_method == 'max_pool':
+                    new_features = F.max_pool2d(
+                        new_features, kernel_size=[1, new_features.size(3)]
+                    )  # (B, mlp[-1], npoint, 1)
+                elif self.pool_method == 'avg_pool':
+                    new_features = F.avg_pool2d(
+                        new_features, kernel_size=[1, new_features.size(3)]
+                    )  # (B, mlp[-1], npoint, 1)
+                else:
+                    raise NotImplementedError
+
+                new_features = new_features.squeeze(-1)  # (B, mlp[-1], npoint)
+                new_features_list.append(new_features)
+
+            new_features = torch.cat(new_features_list, dim=1)
+            new_features = self.out_aggregation(new_features)
+        else:
+            new_features = pointnet2_utils.gather_operation(features, fps_idxes).contiguous()
+
+        return new_xyz, new_features
+
 
 
 if __name__ == "__main__":
