@@ -35,15 +35,15 @@ echo $PORT
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 8 \
-    --cfg_file cfgs/m3ed_benchmark_models/grid-based/PartA2.yaml
+    --cfg_file cfgs/m3ed_benchmark_models/grid-based/PartA2_pi3det.yaml
 
 srun python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher pytorch --tcp_port ${PORT} \
     --batch_size 8 \
-    --cfg_file cfgs/m3ed_benchmark_models/point-based/pointrcnn.yaml
+    --cfg_file cfgs/m3ed_benchmark_models/point-based/pointrcnn_pi3det.yaml
 
-srun python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher pytorch --tcp_port ${PORT} \
-    --batch_size 8 \
-    --cfg_file cfgs/m3ed_benchmark_models/grid-based/transfusion_lidar.yaml
+# srun python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher pytorch --tcp_port ${PORT} \
+#     --batch_size 8 \
+#     --cfg_file cfgs/m3ed_benchmark_models/grid-based/transfusion_lidar.yaml
 
 # srun python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher pytorch --tcp_port ${PORT} \
 #     --batch_size 8 \

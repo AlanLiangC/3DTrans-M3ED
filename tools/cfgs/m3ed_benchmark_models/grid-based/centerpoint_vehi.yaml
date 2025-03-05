@@ -6,9 +6,12 @@ DATA_CONFIG:
         'train': [
             processed/Car/Urban_Day/penno_big_loop,
             ],
-        'test': [processed/Spot/Outdoor_Day/penno_short_loop],
+        'test': [
+            processed/Falcon/Outdoor_Day/penno_parking_1,
+            processed/Falcon/Outdoor_Day/penno_parking_2,
+        ],
     }
-    SHIFT_COOR: [0.0, 0.0, 0.3]
+    SHIFT_COOR: [0.0, 0.0, 2.2]
 
 MODEL:
     NAME: CenterPoint

@@ -6,13 +6,23 @@ DATA_CONFIG:
         'train': [
             processed/Car/Urban_Day/penno_big_loop,
             ],
-        'test': [
-            processed/Falcon/Outdoor_Day/penno_parking_1,
-            processed/Falcon/Outdoor_Day/penno_parking_2,
-        ],
+        'test': [processed/Car/Urban_Day/car_urban_day_city_hall],
     }
-    SHIFT_COOR: [0.0, 0.0, 2.2]
+    SHIFT_COOR: [0.0, 0.0, 1.5]
+    DATA_AUGMENTOR:
+        DISABLE_AUG_LIST: ['palceholder']
+        AUG_CONFIG_LIST:
+            - NAME: random_world_flip
+              ALONG_AXIS_LIST: [ 'x', 'y' ]
 
+            - NAME: random_world_rotation
+              WORLD_ROT_ANGLE: [ -0.78539816, 0.78539816 ]
+
+            - NAME: random_world_scaling
+              WORLD_SCALE_RANGE: [ 0.97, 1.03 ]
+
+            - NAME: random_global_rotation_xy
+              WORLD_ROT_ANGLE: [-0.08726646, 0.08726646]
     DATA_PROCESSOR:
         -   NAME: mask_points_and_boxes_outside_range
             REMOVE_OUTSIDE_BOXES: True
