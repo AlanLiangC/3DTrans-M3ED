@@ -6,9 +6,12 @@ DATA_CONFIG:
         'train': [
             processed/Car/Urban_Day/penno_big_loop,
             ],
-        'test': [processed/Car/Urban_Day/car_urban_day_city_hall],
+        'test': [
+            processed/Falcon/Outdoor_Day/penno_parking_1,
+            processed/Falcon/Outdoor_Day/penno_parking_2,
+        ],
     }
-    SHIFT_COOR: [0.0, 0.0, 1.5]
+    SHIFT_COOR: [0.0, 0.0, 2.2]
     DATA_AUGMENTOR:
         DISABLE_AUG_LIST: ['palceholder']
         AUG_CONFIG_LIST:
