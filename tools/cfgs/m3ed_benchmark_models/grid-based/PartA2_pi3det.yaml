@@ -7,7 +7,8 @@ DATA_CONFIG:
             processed/Car/Urban_Day/penno_big_loop,
             ],
         'test': [
-            processed/Spot/Outdoor_Day/penno_short_loop
+            processed/Spot/Outdoor_Day/penno_short_loop,
+            processed/Spot/Outdoor_Day/srt_green_loop            
             # processed/Falcon/Outdoor_Day/penno_parking_1,
             # processed/Falcon/Outdoor_Day/penno_parking_2,
         ],
