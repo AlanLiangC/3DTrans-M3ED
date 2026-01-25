@@ -24,6 +24,7 @@ from .nuscenes.nuscenes_semi_dataset import NuScenesPretrainDataset, NuScenesLab
 from .kitti.kitti_semi_dataset import KittiPretrainDataset, KittiLabeledDataset, KittiUnlabeledDataset, KittiTestDataset, split_kitti_semi_data
 from .m3ed.m3ed_dataset_seqs import OFFM3EDDatasetSeqs
 from .m3ed.m3ed_cross_platform import M3ED_CP_Dataset
+from .pi3det.pi3det_dataset import PI3DET_Dataset
 
 __all__ = {
     'DatasetTemplate': DatasetTemplate,
@@ -40,7 +41,8 @@ __all__ = {
     'ActiveONCEDataset': ActiveONCEDataset,
     'ONCEDatasetPretrain_ADPT': ONCEDatasetPretrain_ADPT,
     'OFFM3EDDatasetSeqs': OFFM3EDDatasetSeqs,
-    'M3ED_CP_Dataset': M3ED_CP_Dataset
+    'M3ED_CP_Dataset': M3ED_CP_Dataset,
+    'PI3DET_Dataset': PI3DET_Dataset
 }
 
 _semi_dataset_dict = {

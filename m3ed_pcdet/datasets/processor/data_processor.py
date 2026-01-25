@@ -95,6 +95,16 @@ class DataProcessor(object):
         if data_dict.get('points', None) is not None:
             mask = common_utils.mask_points_by_range(data_dict['points'], self.point_cloud_range)
             data_dict['points'] = data_dict['points'][mask]
+            if mask.sum() == 0:
+                # add rand points based on point cloud range
+                fake_xyz = np.random.uniform(
+                    low=self.point_cloud_range[0:3],
+                    high=self.point_cloud_range[3:6],
+                    size=(500, 3)
+                ).astype(np.float32)
+                fake_points = np.zeros((500, self.num_point_features), dtype=np.float32)
+                fake_points[:, :3] = fake_xyz
+                data_dict['points'] = fake_points
 
         if data_dict.get('gt_boxes', None) is not None and config.REMOVE_OUTSIDE_BOXES and self.training:
             mask = box_utils.mask_boxes_outside_range_numpy(
@@ -102,7 +112,6 @@ class DataProcessor(object):
             )
             data_dict['gt_boxes'] = data_dict['gt_boxes'][mask]
         return data_dict
-    
     def shuffle_points(self, data_dict=None, config=None):
         if data_dict is None:
             return partial(self.shuffle_points, config=config)

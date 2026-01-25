@@ -143,7 +143,7 @@ class M3ED_SEQ:
         """
         Transform historical frames to current frame with odometry and concatenate them
         """    
-        points = self.remove_ego_points(points, center_radius=1.5)
+        # points = self.remove_ego_points(points, center_radius=1.5)
         points = np.hstack([points, np.zeros((points.shape[0], 1)).astype(points.dtype)])        
         
         pose_cur = self.lidar_pose[sample_idx]

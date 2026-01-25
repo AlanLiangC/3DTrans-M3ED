@@ -24,20 +24,18 @@
 <!-- **This project is developed and maintained by Autonomous Driving Group [at] [Shanghai AI Laboratory](https://www.shlab.org.cn/) (ADLab).** -->
 
 ## Overview
-- [News](#news-fire)
-- [Installation for 3DTrans](#installation-for-3dtrans)
-- [Getting Started](#getting-started)
-- [Transfer Learning Techniques@3DTrans](#3dtrans-autonomous-driving-transfer-learning-codebase) 
-  - [Model Zoo:](#model-zoo)
+- [3DTrans: An Open-source Codebase for Continuous Learning towards Autonomous Driving Task](#3dtrans-an-open-source-codebase-for-continuous-learning-towards-autonomous-driving-task)
+  - [Overview](#overview)
+  - [News :fire:](#news-fire)
+  - [Installation for 3DTrans](#installation-for-3dtrans)
+  - [Getting Started](#getting-started)
+  - [Model Zoo](#model-zoo)
     - [Domain Transfer Results](#domain-transfer-results)
-- [Scalable Pre-training Techniques@3DTrans](#getting-started)
-  - [Model Zoo:](#model-zoo)
-    - [AD-PT Results](#3d-pre-training-results)
+    - [3D Pre-training Results](#3d-pre-training-results)
     - [ReSimAD](#resimad)
-- [Visualization Tools for 3DTrans](#visualization-tools-for-3dtrans)
-- [3DTrans Framework Introduction](docs/GETTING_STARTED_3DTrans.md) 
-- [Acknowledge](#acknowledge)
-- [Citation](#citation)
+  - [Visualization Tools for 3DTrans](#visualization-tools-for-3dtrans)
+  - [Acknowledge](#acknowledge)
+  - [Technical Papers](#technical-papers)
 
 
 ## News :fire:

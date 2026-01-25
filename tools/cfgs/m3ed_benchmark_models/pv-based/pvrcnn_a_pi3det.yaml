@@ -1,20 +1,10 @@
-CLASS_NAMES: ['Vehicle']
+CLASS_NAMES: ['Car']
 
 DATA_CONFIG:
-    _BASE_CONFIG_: cfgs/dataset_configs/m3ed/OD/m3ed_dataset_seq.yaml
-    INFO_SEQUENCES: {
-        'train': [
-            processed/Car/Urban_Day/penno_big_loop,
-            ],
-        'test': [
-            # processed/Falcon/Outdoor_Day/penno_parking_1,
-            # processed/Falcon/Outdoor_Day/penno_parking_2,
-            # processed/Falcon/Outdoor_Day/penno_trees,
-            # processed/Falcon/Outdoor_Day/penno_plaza,
-            # processed/Falcon/Outdoor_Night/high_beams,
-            # processed/Falcon/Outdoor_Night/penno_parking_1,
-
-        ],
+    _BASE_CONFIG_: cfgs/dataset_configs/pi3det/da_pi3det_dataset.yaml
+    INFO_PATH: {
+        'train': [pi3det_infos_train.pkl],
+        'test': [pi3det_infos_val.pkl],
     }
     SHIFT_COOR: [0.0, 0.0, 2.2]
 
@@ -52,7 +42,7 @@ MODEL:
 
         ANCHOR_GENERATOR_CONFIG: [
             {
-                'class_name': 'Vehicle',
+                'class_name': 'Car',
                 'anchor_sizes': [[4.2, 2.0, 1.6]],
                 'anchor_rotations': [0, 1.57],
                 'anchor_bottom_heights': [0],
